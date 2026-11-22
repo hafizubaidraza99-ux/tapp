@@ -1,0 +1,6 @@
+{
+  "name": "Teacher Attendance — Teacher App",
+  "description": "Mobile-first iOS-style attendance and daily timetable web app for teachers. Submit morning attendance, review periods and covers, and view attendance history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
