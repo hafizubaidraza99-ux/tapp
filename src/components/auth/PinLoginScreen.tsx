@@ -99,11 +99,11 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
           setLockedUntil((res as any).lockedUntil || null);
         }
         setError(res.error || 'Wrong PIN.');
-        setPin(''); // Reset PIN on failure
+        // Do NOT clear PIN on failure so entered digits stay on the 4th digit and remain usable
       }
     } catch (err: any) {
       setError('Wrong PIN.');
-      setPin('');
+      // Do NOT clear PIN on failure
     } finally {
       setLoading(false);
     }
@@ -165,7 +165,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. 03001234567"
-                disabled={loading || isLocked}
+                disabled={isLocked}
                 className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-sm"
               />
             </div>
@@ -200,7 +200,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
                 key={digit}
                 type="button"
                 onClick={() => handleKeypadPress(digit)}
-                disabled={loading || isLocked}
+                disabled={isLocked}
                 className="h-14 rounded-2xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xl font-semibold shadow-sm border border-slate-200/80 dark:border-slate-700/80 active:scale-95 active:bg-slate-100 dark:active:bg-slate-700 transition-all flex items-center justify-center min-h-[44px] min-w-[44px]"
               >
                 {digit}
@@ -208,9 +208,10 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
             ))}
             <div /> {/* Empty bottom-left slot */}
             <button
+              key="0"
               type="button"
               onClick={() => handleKeypadPress('0')}
-              disabled={loading || isLocked}
+              disabled={isLocked}
               className="h-14 rounded-2xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xl font-semibold shadow-sm border border-slate-200/80 dark:border-slate-700/80 active:scale-95 active:bg-slate-100 dark:active:bg-slate-700 transition-all flex items-center justify-center min-h-[44px] min-w-[44px]"
             >
               0
@@ -218,7 +219,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
             <button
               type="button"
               onClick={handleBackspace}
-              disabled={loading || pin.length === 0 || isLocked}
+              disabled={pin.length === 0 || isLocked}
               className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 active:scale-95 transition-all flex items-center justify-center disabled:opacity-30 min-h-[44px] min-w-[44px]"
             >
               <Delete className="w-5 h-5 stroke-[2]" />
@@ -227,7 +228,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
 
           <button
             type="submit"
-            disabled={loading || pin.length !== 4 || isLocked}
+            disabled={pin.length !== 4 || isLocked}
             className="w-full h-12 mt-2 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all disabled:opacity-50 ios-active"
           >
             {loading ? (

@@ -12,25 +12,28 @@ export async function getSchoolDetails(schoolId: string): Promise<{
     cutoff_time: '08:00',
   };
 
+  const defaultSchool: School = {
+    id: schoolId,
+    name: 'School',
+    timezone: 'UTC',
+    created_at: new Date().toISOString(),
+  };
+
   const supabase = getSupabase();
   if (!supabase || !schoolId) {
     return {
-      school: null,
+      school: defaultSchool,
       settings: defaultSettings,
     };
   }
 
   try {
-    const schoolRes = await runWithSupabaseRetry(() =>
-      supabase.from('schools').select('*').eq('id', schoolId).single()
-    );
+    // Query school_settings instead of schools table (schools table has RLS restricting anon reads)
     const settingsRes = await runWithSupabaseRetry(() =>
       supabase.from('school_settings').select('*').eq('school_id', schoolId).maybeSingle()
     );
 
-    const school: School | null = schoolRes.data ? (schoolRes.data as School) : null;
     let settings = defaultSettings;
-
     if (settingsRes.data) {
       settings = {
         ...defaultSettings,
@@ -38,11 +41,19 @@ export async function getSchoolDetails(schoolId: string): Promise<{
       };
     }
 
-    return { school, settings };
+    return {
+      school: {
+        id: schoolId,
+        name: (settingsRes.data as any)?.school_name || 'School',
+        timezone: (settingsRes.data as any)?.timezone || 'UTC',
+        created_at: new Date().toISOString(),
+      },
+      settings,
+    };
   } catch (err) {
     console.warn('Error fetching school details:', err);
     return {
-      school: null,
+      school: defaultSchool,
       settings: defaultSettings,
     };
   }
