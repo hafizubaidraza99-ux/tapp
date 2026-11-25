@@ -5,16 +5,17 @@ import {
   RefreshCw,
   AlertCircle,
   GraduationCap,
-  Layers,
 } from 'lucide-react';
 import { TeacherSession } from '../../types';
 import {
   getTeacherDefaultTimetable,
   getTeacherArrangements,
-  getClassTodayTimetable,
+  getTeacherClassTimetable,
+  getTeacherClassArrangements,
   DefaultPeriodItem,
   ArrangementPeriodItem,
-  ClassTimetableItem,
+  ClassTimetableDetailItem,
+  ClassArrangementItem,
 } from '../../services/timetableService';
 
 interface TimetableScreenProps {
@@ -25,7 +26,8 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
   const [activeView, setActiveView] = useState<'my' | 'class'>('my');
   const [defaultPeriods, setDefaultPeriods] = useState<DefaultPeriodItem[]>([]);
   const [arrangements, setArrangements] = useState<ArrangementPeriodItem[]>([]);
-  const [classPeriods, setClassPeriods] = useState<ClassTimetableItem[]>([]);
+  const [classPeriods, setClassPeriods] = useState<ClassTimetableDetailItem[]>([]);
+  const [classArrangements, setClassArrangements] = useState<ClassArrangementItem[]>([]);
   const [className, setClassName] = useState<string>('');
   const [dayName, setDayName] = useState<string>('');
   const [todayDate, setTodayDate] = useState<string>('');
@@ -36,13 +38,23 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
     setLoading(true);
     setError(null);
     try {
-      const [defaultData, arrangeData] = await Promise.all([
+      const [defaultData, arrangeData, classData, classArrangeData] = await Promise.all([
         getTeacherDefaultTimetable({
           schoolId: session.schoolId,
           teacherId: session.teacherId,
           timezone: session.schoolTimezone,
         }),
         getTeacherArrangements({
+          schoolId: session.schoolId,
+          teacherId: session.teacherId,
+          timezone: session.schoolTimezone,
+        }),
+        getTeacherClassTimetable({
+          schoolId: session.schoolId,
+          teacherId: session.teacherId,
+          timezone: session.schoolTimezone,
+        }),
+        getTeacherClassArrangements({
           schoolId: session.schoolId,
           teacherId: session.teacherId,
           timezone: session.schoolTimezone,
@@ -58,33 +70,33 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
       }
 
       if (arrangeData.error && !defaultData.error) {
-        // Non-fatal or display warning if needed
+        // Non-fatal
       } else {
         setArrangements(arrangeData.arrangements);
       }
 
-      // If head teacher, load class timetable
-      if (session.isHeadTeacher && session.classId) {
-        const cData = await getClassTodayTimetable({
-          schoolId: session.schoolId,
-          classId: session.classId,
-          timezone: session.schoolTimezone,
-        });
-        if (cData.periods) {
-          setClassPeriods(cData.periods);
-          setClassName(cData.className);
-        }
+      if (classData.periods && classData.periods.length > 0) {
+        setClassPeriods(classData.periods);
+        setClassName(classData.className);
+      } else {
+        setClassPeriods([]);
+      }
+
+      if (classArrangeData.arrangements) {
+        setClassArrangements(classArrangeData.arrangements);
       }
     } catch (err: any) {
       setError('Could not load your timetable. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [session.schoolId, session.teacherId, session.schoolTimezone, session.isHeadTeacher, session.classId]);
+  }, [session.schoolId, session.teacherId, session.schoolTimezone]);
 
   useEffect(() => {
     loadTimetable();
   }, [loadTimetable]);
+
+  const hasClassTimetable = classPeriods.length > 0;
 
   return (
     <div className="flex-1 p-5 pb-8 overflow-y-auto space-y-4">
@@ -109,8 +121,8 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
         </button>
       </div>
 
-      {/* Head Teacher Segmented Switcher */}
-      {session.isHeadTeacher && (
+      {/* Segmented Switcher for My Timetable and My Class (shown ONLY when get_my_class_timetable returns rows) */}
+      {hasClassTimetable && (
         <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/80">
           <button
             type="button"
@@ -121,7 +133,7 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
             }`}
           >
-            My Assigned Periods
+            My Timetable
           </button>
           <button
             type="button"
@@ -133,7 +145,7 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5 text-blue-500" />
-            <span>Class Timetable</span>
+            <span>My Class</span>
           </button>
         </div>
       )}
@@ -145,7 +157,7 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
         </div>
       )}
 
-      {/* VIEW: TEACHER'S TIMETABLE & ARRANGEMENTS */}
+      {/* VIEW: MY TIMETABLE & ARRANGEMENTS */}
       {activeView === 'my' && (
         <div className="space-y-6">
           {/* Top Section: My Timetable (Default Timetable) */}
@@ -253,66 +265,122 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
         </div>
       )}
 
-      {/* VIEW: HEAD TEACHER CLASS TIMETABLE */}
-      {activeView === 'class' && session.isHeadTeacher && (
-        <div className="space-y-3">
-          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between">
-            <span className="font-semibold">Full Timetable for {className || 'Your Class'}</span>
-            <span className="text-[11px] font-mono">Head Teacher View</span>
+      {/* VIEW: MY CLASS (HEAD TEACHER CLASS TIMETABLE & ARRANGEMENTS) */}
+      {activeView === 'class' && hasClassTimetable && (
+        <div className="space-y-6">
+          {/* Top Section: Class Timetable */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">
+              Class Timetable — {className || 'Class'}
+            </h3>
+
+            {classPeriods.length === 0 && !loading && (
+              <div className="text-center py-8 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
+                <CalendarDays className="w-8 h-8 text-slate-400 mx-auto mb-2 stroke-[1.5]" />
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  No Class Timetable Available
+                </p>
+              </div>
+            )}
+
+            {classPeriods.length > 0 && (
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold uppercase tracking-wider">
+                      <th className="p-3">Period</th>
+                      <th className="p-3">Time</th>
+                      <th className="p-3">Subject</th>
+                      <th className="p-3">Teacher</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {classPeriods.map((item) => (
+                      <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td className="p-3 font-bold whitespace-nowrap">
+                          <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-slate-700 text-white shadow-sm">
+                            P{item.periodNumber}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono tabular-nums whitespace-nowrap text-slate-700 dark:text-slate-300">
+                          {item.startTime} - {item.endTime}
+                        </td>
+                        <td className="p-3 font-semibold text-slate-900 dark:text-white">
+                          {item.subjectName}
+                        </td>
+                        <td className="p-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          {item.teacherName}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          {classPeriods.length === 0 && !loading && (
-            <div className="text-center py-8 text-xs text-slate-500">
-              No periods configured for this class today.
-            </div>
-          )}
+          {/* Bottom Section: Arrangements Today */}
+          <div className="space-y-3 pt-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 px-1">
+              Arrangements Today
+            </h3>
 
-          {classPeriods.length > 0 && (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold uppercase tracking-wider">
-                    <th className="p-3">Period</th>
-                    <th className="p-3">Time</th>
-                    <th className="p-3">Subject</th>
-                    <th className="p-3">Teacher</th>
-                    <th className="p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {classPeriods.map((item, idx) => (
-                    <tr key={idx} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <td className="p-3 font-bold whitespace-nowrap">
-                        <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-slate-700 text-white shadow-sm">
-                          P{item.periodNumber}
-                        </span>
-                      </td>
-                      <td className="p-3 font-mono tabular-nums whitespace-nowrap">
-                        {item.startTime} - {item.endTime}
-                      </td>
-                      <td className="p-3 font-semibold text-slate-900 dark:text-white">
-                        {item.subjectName}
-                      </td>
-                      <td className="p-3 font-medium text-slate-700 dark:text-slate-300">
-                        {item.teacherName}
-                      </td>
-                      <td className="p-3">
-                        {item.isCovered ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-bold">
-                            Covered by {item.coveringTeacherName || 'Sub'}
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                            Regular
-                          </span>
-                        )}
-                      </td>
+            {classArrangements.length === 0 && !loading && (
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                No arrangements today.
+              </div>
+            )}
+
+            {classArrangements.length > 0 && (
+              <div className="overflow-x-auto rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 shadow-sm">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-rose-200 dark:border-rose-900/60 bg-rose-100/60 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 font-semibold uppercase tracking-wider">
+                      <th className="p-3">Period</th>
+                      <th className="p-3">Time</th>
+                      <th className="p-3">Subject</th>
+                      <th className="p-3">Absent Teacher</th>
+                      <th className="p-3">Covering Teacher</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-rose-200/50 dark:divide-rose-950/50">
+                    {classArrangements.map((item) => {
+                      const isUncovered = item.coverStatus === 'uncovered' || item.coveringTeacherName === 'Uncovered';
+                      return (
+                        <tr key={item.id} className="transition-colors hover:bg-rose-100/30 dark:hover:bg-rose-900/20">
+                          <td className="p-3 font-bold whitespace-nowrap">
+                            <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-rose-600 text-white shadow-sm">
+                              P{item.periodNumber}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono tabular-nums whitespace-nowrap text-rose-950 dark:text-rose-100">
+                            {item.startTime} - {item.endTime}
+                          </td>
+                          <td className="p-3 font-semibold text-rose-950 dark:text-rose-100">
+                            {item.subjectName}
+                          </td>
+                          <td className="p-3 font-medium text-rose-900 dark:text-rose-200 whitespace-nowrap">
+                            {item.absentTeacherName}
+                          </td>
+                          <td className="p-3 font-bold">
+                            {isUncovered ? (
+                              <span className="inline-block px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold">
+                                Uncovered
+                              </span>
+                            ) : (
+                              <span className="text-rose-900 dark:text-rose-100 whitespace-nowrap">
+                                {item.coveringTeacherName}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
