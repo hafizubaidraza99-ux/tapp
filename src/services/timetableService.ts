@@ -18,6 +18,25 @@ export interface DisplayPeriodItem {
   coverStatus?: string;
 }
 
+export interface DefaultPeriodItem {
+  id: string;
+  periodNumber: number;
+  startTime: string;
+  endTime: string;
+  subjectName: string;
+  className: string;
+}
+
+export interface ArrangementPeriodItem {
+  id: string;
+  periodNumber: number;
+  startTime: string;
+  endTime: string;
+  subjectName: string;
+  className: string;
+  coveringForName: string;
+}
+
 export interface ClassTimetableItem {
   periodNumber: number;
   periodName?: string;
@@ -30,7 +49,135 @@ export interface ClassTimetableItem {
 }
 
 /**
+ * Fetch default timetable for the current teacher using secure RPC get_my_default_timetable (phone + PIN)
+ */
+export async function getTeacherDefaultTimetable(params: {
+  schoolId: string;
+  teacherId: string;
+  timezone: string;
+}): Promise<{
+  periods: DefaultPeriodItem[];
+  todayDate: string;
+  dayName: string;
+  error?: string;
+}> {
+  const todayDate = getTodayDateString(params.timezone);
+  const dayOfWeek = getDayOfWeekInTimezone(params.timezone);
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = dayNames[dayOfWeek] || 'Today';
+
+  const session = getStoredSession();
+  const phone = session?.whatsappNumber || '';
+  const pin = session?.pin || '';
+
+  const supabase = getSupabase();
+  if (!supabase || !phone || !pin) {
+    return { periods: [], todayDate, dayName, error: 'Please sign in again to view timetable.' };
+  }
+
+  try {
+    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
+      supabase.rpc('get_my_default_timetable', {
+        p_phone: phone,
+        p_pin: pin,
+      })
+    );
+
+    if (rpcError) {
+      console.warn('Could not query get_my_default_timetable:', rpcError.message);
+      return { periods: [], todayDate, dayName, error: "Could not load your timetable. Please try again." };
+    }
+
+    const rows = (rpcData as any[]) || [];
+    const resultPeriods: DefaultPeriodItem[] = [];
+
+    rows.forEach((row: any) => {
+      const startTime = row.out_period_start ? String(row.out_period_start).slice(0, 5) : '--:--';
+      const endTime = row.out_period_end ? String(row.out_period_end).slice(0, 5) : '--:--';
+
+      resultPeriods.push({
+        id: row.out_id || `${row.out_period_number}`,
+        periodNumber: row.out_period_number || 1,
+        startTime,
+        endTime,
+        subjectName: row.out_subject_name || 'Class Period',
+        className: row.out_class_name || 'Assigned Class',
+      });
+    });
+
+    resultPeriods.sort((a, b) => a.periodNumber - b.periodNumber || a.startTime.localeCompare(b.startTime));
+
+    return { periods: resultPeriods, todayDate, dayName };
+  } catch (err: any) {
+    console.warn('Error in getTeacherDefaultTimetable:', err);
+    return { periods: [], todayDate, dayName, error: err?.message || 'Failed to load timetable.' };
+  }
+}
+
+/**
+ * Fetch today's arrangement (cover) periods for the current teacher using secure RPC get_my_arrangements (phone + PIN)
+ */
+export async function getTeacherArrangements(params: {
+  schoolId: string;
+  teacherId: string;
+  timezone: string;
+}): Promise<{
+  arrangements: ArrangementPeriodItem[];
+  error?: string;
+}> {
+  const session = getStoredSession();
+  const phone = session?.whatsappNumber || '';
+  const pin = session?.pin || '';
+
+  const supabase = getSupabase();
+  if (!supabase || !phone || !pin) {
+    return { arrangements: [], error: 'Please sign in again to view arrangements.' };
+  }
+
+  try {
+    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
+      supabase.rpc('get_my_arrangements', {
+        p_phone: phone,
+        p_pin: pin,
+      })
+    );
+
+    if (rpcError) {
+      console.warn('Could not query get_my_arrangements:', rpcError.message);
+      return { arrangements: [], error: "Could not load arrangement periods. Please try again." };
+    }
+
+    const rows = (rpcData as any[]) || [];
+    const resultArrangements: ArrangementPeriodItem[] = [];
+
+    rows.forEach((row: any) => {
+      const startTime = row.out_period_start ? String(row.out_period_start).slice(0, 5) : '--:--';
+      const endTime = row.out_period_end ? String(row.out_period_end).slice(0, 5) : '--:--';
+      const coveringForName = row.out_original_teacher_name || row.out_teacher_name || row.out_original_teacher || 'Absent Teacher';
+
+      resultArrangements.push({
+        id: row.out_id || `${row.out_period_number}`,
+        periodNumber: row.out_period_number || 1,
+        startTime,
+        endTime,
+        subjectName: row.out_subject_name || 'Class Period',
+        className: row.out_class_name || 'Assigned Class',
+        coveringForName,
+      });
+    });
+
+    resultArrangements.sort((a, b) => a.periodNumber - b.periodNumber || a.startTime.localeCompare(b.startTime));
+
+    return { arrangements: resultArrangements };
+  } catch (err: any) {
+    console.warn('Error in getTeacherArrangements:', err);
+    return { arrangements: [], error: err?.message || 'Failed to load arrangements.' };
+  }
+}
+
+/**
  * Fetch today's timetable for the current teacher using secure RPC get_my_timetable.
+ * (Retained for backward compatibility if needed, though replaced on screen by default timetable + arrangements)
  */
 export async function getTeacherTodayTimetable(params: {
   schoolId: string;
@@ -56,7 +203,6 @@ export async function getTeacherTodayTimetable(params: {
   }
 
   try {
-    // Call get_my_timetable RPC (no direct queries to periods, subjects, or classes)
     const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
       supabase.rpc('get_my_timetable', {
         p_teacher_id: params.teacherId,
@@ -66,7 +212,6 @@ export async function getTeacherTodayTimetable(params: {
     );
 
     if (rpcError) {
-      console.warn('Could not query get_my_timetable:', rpcError.message);
       return { periods: [], todayDate, dayName, error: "Could not load your timetable. Please try again." };
     }
 
@@ -99,7 +244,6 @@ export async function getTeacherTodayTimetable(params: {
       });
     });
 
-    // Sort by period number then start time
     resultPeriods.sort((a, b) => a.periodNumber - b.periodNumber || a.startTime.localeCompare(b.startTime));
 
     return {
@@ -108,7 +252,6 @@ export async function getTeacherTodayTimetable(params: {
       dayName,
     };
   } catch (err: any) {
-    console.error('Error in getTeacherTodayTimetable:', err);
     return {
       periods: [],
       todayDate,

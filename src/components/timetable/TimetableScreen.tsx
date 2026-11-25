@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   CalendarDays,
   Clock,
-  UserCheck,
-  UserX,
   RefreshCw,
   AlertCircle,
   GraduationCap,
@@ -11,9 +9,11 @@ import {
 } from 'lucide-react';
 import { TeacherSession } from '../../types';
 import {
-  getTeacherTodayTimetable,
+  getTeacherDefaultTimetable,
+  getTeacherArrangements,
   getClassTodayTimetable,
-  DisplayPeriodItem,
+  DefaultPeriodItem,
+  ArrangementPeriodItem,
   ClassTimetableItem,
 } from '../../services/timetableService';
 
@@ -23,7 +23,8 @@ interface TimetableScreenProps {
 
 export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => {
   const [activeView, setActiveView] = useState<'my' | 'class'>('my');
-  const [periods, setPeriods] = useState<DisplayPeriodItem[]>([]);
+  const [defaultPeriods, setDefaultPeriods] = useState<DefaultPeriodItem[]>([]);
+  const [arrangements, setArrangements] = useState<ArrangementPeriodItem[]>([]);
   const [classPeriods, setClassPeriods] = useState<ClassTimetableItem[]>([]);
   const [className, setClassName] = useState<string>('');
   const [dayName, setDayName] = useState<string>('');
@@ -35,18 +36,31 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
     setLoading(true);
     setError(null);
     try {
-      const myData = await getTeacherTodayTimetable({
-        schoolId: session.schoolId,
-        teacherId: session.teacherId,
-        timezone: session.schoolTimezone,
-      });
+      const [defaultData, arrangeData] = await Promise.all([
+        getTeacherDefaultTimetable({
+          schoolId: session.schoolId,
+          teacherId: session.teacherId,
+          timezone: session.schoolTimezone,
+        }),
+        getTeacherArrangements({
+          schoolId: session.schoolId,
+          teacherId: session.teacherId,
+          timezone: session.schoolTimezone,
+        }),
+      ]);
 
-      if (myData.error) {
-        setError(myData.error);
+      if (defaultData.error) {
+        setError(defaultData.error);
       } else {
-        setPeriods(myData.periods);
-        setDayName(myData.dayName);
-        setTodayDate(myData.todayDate);
+        setDefaultPeriods(defaultData.periods);
+        setDayName(defaultData.dayName);
+        setTodayDate(defaultData.todayDate);
+      }
+
+      if (arrangeData.error && !defaultData.error) {
+        // Non-fatal or display warning if needed
+      } else {
+        setArrangements(arrangeData.arrangements);
       }
 
       // If head teacher, load class timetable
@@ -131,82 +145,111 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
         </div>
       )}
 
-      {/* VIEW: TEACHER'S OWN PERIODS */}
+      {/* VIEW: TEACHER'S TIMETABLE & ARRANGEMENTS */}
       {activeView === 'my' && (
-        <div className="space-y-3">
-          {periods.length === 0 && !loading && (
-            <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
-              <CalendarDays className="w-10 h-10 text-slate-400 mx-auto mb-2 stroke-[1.5]" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                No Periods Scheduled Today
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                You have no teaching periods or cover assignments for {dayName}.
-              </p>
-            </div>
-          )}
+        <div className="space-y-6">
+          {/* Top Section: My Timetable (Default Timetable) */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">
+              My Timetable
+            </h3>
 
-          {periods.length > 0 && (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold uppercase tracking-wider">
-                    <th className="p-3">Period</th>
-                    <th className="p-3">Time</th>
-                    <th className="p-3">Subject</th>
-                    <th className="p-3">Class</th>
-                    <th className="p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {periods.map((period) => {
-                    const isArrangement = period.isCovering;
-                    const isUncovered = period.coverStatus === 'uncovered';
+            {defaultPeriods.length === 0 && !loading && (
+              <div className="text-center py-8 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
+                <CalendarDays className="w-8 h-8 text-slate-400 mx-auto mb-2 stroke-[1.5]" />
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  No Default Timetable Scheduled
+                </p>
+              </div>
+            )}
 
-                    // Normal periods: blue box (blue background)
-                    // Arrangement periods: red box (red background)
-                    // Uncovered periods: grey box
-                    let boxClass = 'bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100';
-                    let statusLabel = period.isCovered ? `Covered by ${period.coveringTeacherName || 'Colleague'}` : 'Scheduled';
-
-                    if (isArrangement) {
-                      boxClass = 'bg-rose-50/70 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100';
-                      statusLabel = `Covering for ${period.originalTeacherName || 'Colleague'}`;
-                    } else if (isUncovered) {
-                      boxClass = 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300';
-                      statusLabel = 'Uncovered';
-                    }
-
-                    return (
-                      <tr key={period.id} className={`${boxClass} transition-colors border-b border-slate-200/50 dark:border-slate-800/50`}>
+            {defaultPeriods.length > 0 && (
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold uppercase tracking-wider">
+                      <th className="p-3">Period</th>
+                      <th className="p-3">Time</th>
+                      <th className="p-3">Subject</th>
+                      <th className="p-3">Class</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {defaultPeriods.map((period) => (
+                      <tr key={period.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
                         <td className="p-3 font-bold whitespace-nowrap">
-                          <span className={`inline-block px-2.5 py-1 rounded-lg font-bold text-white shadow-sm ${
-                            isArrangement ? 'bg-rose-600' :
-                            isUncovered ? 'bg-slate-500' :
-                            'bg-blue-600'
-                          }`}>
+                          <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-blue-600 text-white shadow-sm">
                             P{period.periodNumber}
                           </span>
                         </td>
-                        <td className="p-3 font-mono tabular-nums whitespace-nowrap">
+                        <td className="p-3 font-mono tabular-nums whitespace-nowrap text-slate-700 dark:text-slate-300">
                           {period.startTime} - {period.endTime}
                         </td>
-                        <td className="p-3 font-semibold">
+                        <td className="p-3 font-semibold text-slate-900 dark:text-white">
                           {period.subjectName}
                         </td>
-                        <td className="p-3 whitespace-nowrap">
+                        <td className="p-3 whitespace-nowrap text-slate-700 dark:text-slate-300">
                           {period.className}
                         </td>
-                        <td className="p-3 font-medium">
-                          {statusLabel}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Separate Section Below: Arrangement Periods */}
+          <div className="space-y-3 pt-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 px-1">
+              Arrangement Periods
+            </h3>
+
+            {arrangements.length === 0 && !loading && (
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                No arrangement periods today
+              </div>
+            )}
+
+            {arrangements.length > 0 && (
+              <div className="overflow-x-auto rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 shadow-sm">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-rose-200 dark:border-rose-900/60 bg-rose-100/60 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 font-semibold uppercase tracking-wider">
+                      <th className="p-3">Period</th>
+                      <th className="p-3">Time</th>
+                      <th className="p-3">Subject</th>
+                      <th className="p-3">Class</th>
+                      <th className="p-3">Covering for</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-rose-200/50 dark:divide-rose-950/50">
+                    {arrangements.map((item) => (
+                      <tr key={item.id} className="transition-colors hover:bg-rose-100/30 dark:hover:bg-rose-900/20">
+                        <td className="p-3 font-bold whitespace-nowrap">
+                          <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-rose-600 text-white shadow-sm">
+                            P{item.periodNumber}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono tabular-nums whitespace-nowrap text-rose-950 dark:text-rose-100">
+                          {item.startTime} - {item.endTime}
+                        </td>
+                        <td className="p-3 font-semibold text-rose-950 dark:text-rose-100">
+                          {item.subjectName}
+                        </td>
+                        <td className="p-3 whitespace-nowrap text-rose-900 dark:text-rose-200">
+                          {item.className}
+                        </td>
+                        <td className="p-3 font-bold text-rose-900 dark:text-rose-100">
+                          {item.coveringForName}
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
