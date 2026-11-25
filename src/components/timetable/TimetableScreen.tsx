@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CalendarDays,
   Clock,
@@ -9,7 +9,7 @@ import {
 import { TeacherSession } from '../../types';
 import {
   getTeacherDefaultTimetable,
-  getTeacherArrangements,
+  getTeacherArrangementsByDate,
   getTeacherClassTimetable,
   getTeacherClassArrangements,
   DefaultPeriodItem,
@@ -17,6 +17,7 @@ import {
   ClassTimetableDetailItem,
   ClassArrangementItem,
 } from '../../services/timetableService';
+import { getTodayDateString } from '../../utils/dateUtils';
 
 interface TimetableScreenProps {
   session: TeacherSession;
@@ -33,10 +34,59 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
   const [todayDate, setTodayDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [arrangementDate, setArrangementDate] = useState<string>(() =>
+    getTodayDateString(session.schoolTimezone)
+  );
+  const [arrangementsLoading, setArrangementsLoading] = useState(false);
+  const [arrangementsError, setArrangementsError] = useState<string | null>(null);
+  const arrangementDateRef = useRef<string>(arrangementDate);
+  const arrangementsReqIdRef = useRef<number>(0);
+
+  const loadArrangementsForDate = useCallback(
+    async (targetDate: string) => {
+      const reqId = ++arrangementsReqIdRef.current;
+      setArrangementsLoading(true);
+      setArrangementsError(null);
+      try {
+        const arrangeData = await getTeacherArrangementsByDate({
+          schoolId: session.schoolId,
+          teacherId: session.teacherId,
+          timezone: session.schoolTimezone,
+          date: targetDate,
+        });
+        if (reqId !== arrangementsReqIdRef.current) return;
+        if (arrangeData.error) {
+          setArrangementsError(arrangeData.error);
+          setArrangements([]);
+        } else {
+          setArrangements(arrangeData.arrangements);
+        }
+      } catch {
+        if (reqId !== arrangementsReqIdRef.current) return;
+        setArrangementsError('Could not load arrangement periods. Please try again.');
+        setArrangements([]);
+      } finally {
+        if (reqId === arrangementsReqIdRef.current) {
+          setArrangementsLoading(false);
+        }
+      }
+    },
+    [session.schoolId, session.teacherId, session.schoolTimezone]
+  );
+
+  const handleArrangementDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextDate = e.target.value || getTodayDateString(session.schoolTimezone);
+    setArrangementDate(nextDate);
+    arrangementDateRef.current = nextDate;
+    loadArrangementsForDate(nextDate);
+  };
 
   const loadTimetable = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setArrangementsError(null);
+    const reqId = ++arrangementsReqIdRef.current;
+    const targetDate = arrangementDateRef.current || getTodayDateString(session.schoolTimezone);
     try {
       const [defaultData, arrangeData, classData, classArrangeData] = await Promise.all([
         getTeacherDefaultTimetable({
@@ -44,10 +94,11 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
           teacherId: session.teacherId,
           timezone: session.schoolTimezone,
         }),
-        getTeacherArrangements({
+        getTeacherArrangementsByDate({
           schoolId: session.schoolId,
           teacherId: session.teacherId,
           timezone: session.schoolTimezone,
+          date: targetDate,
         }),
         getTeacherClassTimetable({
           schoolId: session.schoolId,
@@ -69,10 +120,13 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
         setTodayDate(defaultData.todayDate);
       }
 
-      if (arrangeData.error && !defaultData.error) {
-        // Non-fatal
-      } else {
-        setArrangements(arrangeData.arrangements);
+      if (reqId === arrangementsReqIdRef.current) {
+        if (arrangeData.error) {
+          setArrangementsError(arrangeData.error);
+          setArrangements([]);
+        } else {
+          setArrangements(arrangeData.arrangements);
+        }
       }
 
       if (classData.periods && classData.periods.length > 0) {
@@ -213,17 +267,39 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
 
           {/* Separate Section Below: Arrangement Periods */}
           <div className="space-y-3 pt-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 px-1">
-              Arrangement Periods
-            </h3>
+            <div className="flex items-center justify-between gap-2 px-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                Arrangement Periods
+              </h3>
+              <input
+                type="date"
+                aria-label="Arrangement date"
+                value={arrangementDate}
+                onChange={handleArrangementDateChange}
+                className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+              />
+            </div>
 
-            {arrangements.length === 0 && !loading && (
-              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                No arrangement periods today
+            {arrangementsError && !arrangementsLoading && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <span>{arrangementsError}</span>
               </div>
             )}
 
-            {arrangements.length > 0 && (
+            {arrangementsLoading && (
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Loading arrangement periods...
+              </div>
+            )}
+
+            {!arrangementsLoading && !arrangementsError && arrangements.length === 0 && !loading && (
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                No arrangement periods on this day.
+              </div>
+            )}
+
+            {!arrangementsLoading && arrangements.length > 0 && (
               <div className="overflow-x-auto rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 shadow-sm">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>

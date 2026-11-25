@@ -198,6 +198,71 @@ export async function getTeacherArrangements(params: {
 }
 
 /**
+ * Fetch arrangement (cover) periods for a specific date using secure RPC get_my_arrangements_by_date (phone + PIN + date)
+ */
+export async function getTeacherArrangementsByDate(params: {
+  schoolId: string;
+  teacherId: string;
+  timezone: string;
+  date: string;
+}): Promise<{
+  arrangements: ArrangementPeriodItem[];
+  error?: string;
+}> {
+  const session = getStoredSession();
+  const phone = session?.whatsappNumber || '';
+  const pin = session?.pin || '';
+  const targetDate = params.date || getTodayDateString(params.timezone);
+
+  const supabase = getSupabase();
+  if (!supabase || !phone || !pin) {
+    return { arrangements: [], error: 'Please sign in again to view arrangement periods.' };
+  }
+
+  try {
+    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
+      supabase.rpc('get_my_arrangements_by_date', {
+        p_phone: phone,
+        p_pin: pin,
+        p_date: targetDate,
+      })
+    );
+
+    if (rpcError) {
+      console.warn('Could not query get_my_arrangements_by_date:', rpcError.message);
+      return { arrangements: [], error: 'Could not load arrangement periods. Please try again.' };
+    }
+
+    const rows = (rpcData as any[]) || [];
+    const resultArrangements: ArrangementPeriodItem[] = [];
+
+    rows.forEach((row: any) => {
+      const startTime = row.out_period_start ? String(row.out_period_start).slice(0, 5) : '--:--';
+      const endTime = row.out_period_end ? String(row.out_period_end).slice(0, 5) : '--:--';
+      const coveringForName =
+        row.out_original_teacher_name || row.out_teacher_name || row.out_original_teacher || 'Absent Teacher';
+
+      resultArrangements.push({
+        id: row.out_id || `${targetDate}-${row.out_period_number}`,
+        periodNumber: row.out_period_number || 1,
+        startTime,
+        endTime,
+        subjectName: row.out_subject_name || 'Class Period',
+        className: row.out_class_name || 'Assigned Class',
+        coveringForName,
+      });
+    });
+
+    resultArrangements.sort((a, b) => a.periodNumber - b.periodNumber || a.startTime.localeCompare(b.startTime));
+
+    return { arrangements: resultArrangements };
+  } catch (err: any) {
+    console.warn('Error in getTeacherArrangementsByDate:', err);
+    return { arrangements: [], error: 'Could not load arrangement periods. Please try again.' };
+  }
+}
+
+/**
  * Fetch head teacher's class timetable for today using secure RPC get_my_class_timetable (phone + PIN)
  */
 export async function getTeacherClassTimetable(params: {

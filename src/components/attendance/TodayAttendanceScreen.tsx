@@ -6,12 +6,22 @@ import {
   Lock,
   RefreshCw,
   AlertCircle,
-  HelpCircle,
   Check,
+  CalendarClock,
+  X,
 } from 'lucide-react';
 import { TeacherSession, AttendanceRecord, AttendanceStatus, SchoolSettings } from '../../types';
 import { getTodayAttendance, submitTodayAttendance } from '../../services/attendanceService';
 import { getSchoolDetails } from '../../services/schoolService';
+import {
+  getMyHalfLeave,
+  getMyHalfLeavePeriods,
+  applyMyHalfLeave,
+  cancelMyHalfLeave,
+  HalfLeaveInfo,
+  HalfLeavePeriodItem,
+  ApplyHalfLeaveResultCode,
+} from '../../services/halfLeaveService';
 import {
   isCutoffPassed,
   formatFriendlyDate,
@@ -36,7 +46,18 @@ export const TodayAttendanceScreen: React.FC<TodayAttendanceScreenProps> = ({ se
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Load school settings and today's attendance
+  const [halfLeave, setHalfLeave] = useState<HalfLeaveInfo | null>(null);
+  const [halfLeaveNotice, setHalfLeaveNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showHalfLeavePanel, setShowHalfLeavePanel] = useState(false);
+  const [panelLoading, setPanelLoading] = useState(false);
+  const [panelError, setPanelError] = useState<string | null>(null);
+  const [panelInfo, setPanelInfo] = useState<HalfLeaveInfo | null>(null);
+  const [panelPeriods, setPanelPeriods] = useState<HalfLeavePeriodItem[]>([]);
+  const [applyingHalfLeave, setApplyingHalfLeave] = useState(false);
+  const [applyResultMessage, setApplyResultMessage] = useState<string | null>(null);
+  const [cancellingHalfLeave, setCancellingHalfLeave] = useState(false);
+
+  // Load school settings, today's attendance, and half leave status
   const loadData = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
@@ -60,6 +81,11 @@ export const TodayAttendanceScreen: React.FC<TodayAttendanceScreenProps> = ({ se
       } else {
         setAttendance(null);
       }
+
+      const halfLeaveRes = await getMyHalfLeave();
+      if (!halfLeaveRes.error && halfLeaveRes.info) {
+        setHalfLeave(halfLeaveRes.info);
+      }
     } catch (err: any) {
       console.warn('Could not load attendance data:', err);
       setErrorMessage('Could not load attendance status. Please check connection.');
@@ -74,6 +100,103 @@ export const TodayAttendanceScreen: React.FC<TodayAttendanceScreenProps> = ({ se
     const timer = setInterval(loadData, 30000);
     return () => clearInterval(timer);
   }, [loadData]);
+
+  const handleOpenHalfLeavePanel = async () => {
+    setHalfLeaveNotice(null);
+    setApplyResultMessage(null);
+    setPanelError(null);
+    setShowHalfLeavePanel(true);
+    setPanelLoading(true);
+    try {
+      const [infoRes, periodsRes] = await Promise.all([
+        getMyHalfLeave(),
+        getMyHalfLeavePeriods(),
+      ]);
+      if (infoRes.error) {
+        setPanelError(infoRes.error);
+      } else {
+        setPanelInfo(infoRes.info);
+      }
+      if (periodsRes.error && !infoRes.error) {
+        setPanelError(periodsRes.error);
+      } else {
+        setPanelPeriods(periodsRes.periods);
+      }
+    } catch {
+      setPanelError('Could not load half leave details. Please try again.');
+    } finally {
+      setPanelLoading(false);
+    }
+  };
+
+  const getApplyMessage = (code: ApplyHalfLeaveResultCode): string => {
+    switch (code) {
+      case 'applied':
+        return 'Done. Your remaining periods will be covered.';
+      case 'pending':
+        return "Sent. Your half leave is waiting for your principal's approval.";
+      case 'not_present':
+        return 'You can take half leave only after you mark yourself present.';
+      case 'no_timetable':
+        return "Half leave opens after today's timetable is ready.";
+      case 'day_over':
+        return 'The school day is over. There are no periods left to hand over.';
+      case 'nothing_left':
+        return 'You have no periods left today to hand over.';
+      case 'already':
+        return 'You have already applied for half leave today.';
+      case 'too_early':
+        return 'Half leave opens when school starts.';
+      default:
+        return 'Something went wrong. Please try again.';
+    }
+  };
+
+  const handleApplyHalfLeave = async () => {
+    setApplyingHalfLeave(true);
+    setApplyResultMessage(null);
+    try {
+      const code = await applyMyHalfLeave();
+      const message = getApplyMessage(code);
+      if (code === 'applied' || code === 'pending') {
+        setShowHalfLeavePanel(false);
+        setHalfLeaveNotice({ type: 'success', text: message });
+        await loadData();
+      } else {
+        setApplyResultMessage(message);
+        if (code === 'already') {
+          await loadData();
+        }
+      }
+    } catch {
+      setApplyResultMessage('Something went wrong. Please try again.');
+    } finally {
+      setApplyingHalfLeave(false);
+    }
+  };
+
+  const handleCancelHalfLeave = async () => {
+    setCancellingHalfLeave(true);
+    setHalfLeaveNotice(null);
+    try {
+      const code = await cancelMyHalfLeave();
+      if (code === 'cancelled') {
+        setHalfLeaveNotice({ type: 'success', text: 'Your half leave is cancelled.' });
+      } else if (code === 'too_late') {
+        setHalfLeaveNotice({
+          type: 'error',
+          text: 'It is too late to cancel now. Please talk to your principal.',
+        });
+      } else {
+        setHalfLeaveNotice({ type: 'error', text: 'Something went wrong. Please try again.' });
+      }
+      await loadData();
+    } catch {
+      setHalfLeaveNotice({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setCancellingHalfLeave(false);
+    }
+  };
 
   // Handle clicking one of the three big buttons: PRESENT / ABSENT / LATE
   const handleSelectStatus = async (status: 'present' | 'absent' | 'late') => {
@@ -101,6 +224,10 @@ export const TodayAttendanceScreen: React.FC<TodayAttendanceScreenProps> = ({ se
         const statusLabel = status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Late';
         setSuccessToast(`Saved: Marked as ${statusLabel} for today.`);
         setTimeout(() => setSuccessToast(null), 4000);
+        const halfLeaveRes = await getMyHalfLeave();
+        if (!halfLeaveRes.error && halfLeaveRes.info) {
+          setHalfLeave(halfLeaveRes.info);
+        }
       } else if (result.locked) {
         setErrorMessage(result.error || 'Cutoff has passed. Response is locked.');
         loadData();
@@ -143,7 +270,10 @@ export const TodayAttendanceScreen: React.FC<TodayAttendanceScreenProps> = ({ se
           </div>
           <button
             type="button"
-            onClick={loadData}
+            onClick={() => {
+              setHalfLeaveNotice(null);
+              loadData();
+            }}
             disabled={loading}
             aria-label="Refresh attendance"
             className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -346,6 +476,95 @@ export const TodayAttendanceScreen: React.FC<TodayAttendanceScreenProps> = ({ se
             )}
           </button>
         </div>
+
+        {/* Half Leave feedback notice */}
+        {halfLeaveNotice && (
+          <div
+            className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+              halfLeaveNotice.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+            }`}
+          >
+            {halfLeaveNotice.type === 'success' ? (
+              <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+            )}
+            <span>{halfLeaveNotice.text}</span>
+          </div>
+        )}
+
+        {/* Half Leave Section: Status Card OR Half Leave Button */}
+        {halfLeave?.status && halfLeave.status !== 'cancelled' ? (
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  halfLeave.status === 'rejected'
+                    ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
+                    : halfLeave.status === 'pending'
+                    ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
+                    : 'bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
+                }`}
+              >
+                <CalendarClock className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                  Half Leave
+                </p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug">
+                  {(halfLeave.status === 'applied' || halfLeave.status === 'approved') &&
+                    `You are on half leave from Period ${halfLeave.fromPeriod ?? ''}.`}
+                  {halfLeave.status === 'pending' &&
+                    `Half leave from Period ${halfLeave.fromPeriod ?? ''} — waiting for your principal's approval.`}
+                  {halfLeave.status === 'rejected' && 'Your half leave was not approved.'}
+                </p>
+              </div>
+            </div>
+
+            {halfLeave.canCancel && (
+              <button
+                type="button"
+                onClick={handleCancelHalfLeave}
+                disabled={cancellingHalfLeave}
+                className="w-full h-11 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-semibold text-xs flex items-center justify-center transition-colors disabled:opacity-50 min-h-[44px]"
+              >
+                {cancellingHalfLeave ? 'Cancelling...' : 'Cancel Half Leave'}
+              </button>
+            )}
+          </div>
+        ) : (
+          (currentStatus === 'present' || currentStatus === 'late') && (
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                disabled={!halfLeave?.inSchoolTime}
+                onClick={handleOpenHalfLeavePanel}
+                className={`w-full min-h-[48px] px-4 rounded-2xl border font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
+                  halfLeave?.inSchoolTime
+                    ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/70 shadow-sm active:scale-[0.98] ios-active'
+                    : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                <CalendarClock
+                  className={`w-4 h-4 ${
+                    halfLeave?.inSchoolTime
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-400 dark:text-slate-500'
+                  }`}
+                />
+                <span>Half Leave</span>
+              </button>
+              {halfLeave !== null && !halfLeave.inSchoolTime && (
+                <p className="text-[11px] text-center text-slate-500 dark:text-slate-400">
+                  Half Leave is available during school hours.
+                </p>
+              )}
+            </div>
+          )
+        )}
       </div>
 
       {/* Saved Status Summary Card */}
@@ -418,6 +637,128 @@ export const TodayAttendanceScreen: React.FC<TodayAttendanceScreenProps> = ({ se
           )}
         </div>
       </div>
+
+      {/* Half Leave Panel Modal */}
+      {showHalfLeavePanel && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[85vh] flex flex-col">
+            <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4 sm:hidden shrink-0" />
+            <div className="flex items-center justify-between mb-3 shrink-0">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Half Leave
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowHalfLeavePanel(false)}
+                aria-label="Close"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-0.5">
+              {panelLoading && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 py-4 text-center">
+                  Checking your remaining periods...
+                </p>
+              )}
+
+              {!panelLoading && panelError && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                  <span>{panelError}</span>
+                </div>
+              )}
+
+              {!panelLoading && !panelError && panelInfo && (
+                <>
+                  {panelInfo.dayOver ? (
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                      The school day is over. There are no periods left to hand over.
+                    </div>
+                  ) : panelPeriods.length === 0 ? (
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                      You have no periods left today to hand over.
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        Your periods from Period {panelInfo.currentFromPeriod ?? panelPeriods[0].periodNumber} onwards will be handed over.
+                      </p>
+
+                      <div className="space-y-2">
+                        {panelPeriods.map((period) => (
+                          <div
+                            key={`${period.periodNumber}-${period.startTime}`}
+                            className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-start justify-between gap-3"
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="font-bold text-blue-600 dark:text-blue-400">
+                                  Period {period.periodNumber}
+                                </span>
+                                <span className="text-slate-400">·</span>
+                                <span className="font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                                  {period.startTime} - {period.endTime}
+                                </span>
+                              </div>
+                              <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                                {period.subjectName}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {period.className}
+                                {period.coveringForName ? ` · covering for ${period.coveringForName}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {panelInfo.requiresApproval && (
+                        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200">
+                          Your principal will see this and approve it.
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
+              {applyResultMessage && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                  <span>{applyResultMessage}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-4 mt-2 border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowHalfLeavePanel(false)}
+                className="flex-1 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold min-h-[44px]"
+              >
+                Close
+              </button>
+              {!panelLoading &&
+                !panelError &&
+                panelInfo &&
+                !panelInfo.dayOver &&
+                panelPeriods.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleApplyHalfLeave}
+                    disabled={applyingHalfLeave}
+                    className="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 min-h-[44px]"
+                  >
+                    {applyingHalfLeave ? 'Sending...' : 'Take Half Leave'}
+                  </button>
+                )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
