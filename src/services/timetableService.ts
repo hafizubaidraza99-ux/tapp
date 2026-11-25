@@ -15,6 +15,7 @@ export interface DisplayPeriodItem {
   originalTeacherName?: string;
   coveringTeacherName?: string;
   notes?: string;
+  coverStatus?: string;
 }
 
 export interface ClassTimetableItem {
@@ -73,8 +74,9 @@ export async function getTeacherTodayTimetable(params: {
     const resultPeriods: DisplayPeriodItem[] = [];
 
     rows.forEach((row: any) => {
-      const isCovering = row.out_cover_status === 'covered' && row.out_assigned_teacher_id === params.teacherId;
-      const isCovered = row.out_cover_status === 'covered' && row.out_original_teacher_id === params.teacherId && row.out_assigned_teacher_id !== params.teacherId;
+      const coverStatus = row.out_cover_status || 'regular';
+      const isCovering = coverStatus === 'covered' && row.out_assigned_teacher_id === params.teacherId;
+      const isCovered = coverStatus === 'covered' && row.out_original_teacher_id === params.teacherId && row.out_assigned_teacher_id !== params.teacherId;
       const originalTeacherName = row.out_original_teacher_name || undefined;
       const coveringTeacherName = isCovered ? row.out_assigned_teacher_name : undefined;
 
@@ -93,6 +95,7 @@ export async function getTeacherTodayTimetable(params: {
         isCovered,
         originalTeacherName,
         coveringTeacherName,
+        coverStatus,
       });
     });
 

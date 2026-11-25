@@ -146,73 +146,67 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
             </div>
           )}
 
-          {periods.map((period) => (
-            <div
-              key={period.id}
-              className={`p-4 rounded-2xl border transition-all ${
-                period.isCovering
-                  ? 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60'
-                  : period.isCovered
-                  ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/60'
-                  : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/80'
-              } shadow-sm`}
-            >
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                      Period {period.periodNumber}
-                    </span>
-                    <span aria-hidden="true" className="text-slate-300">·</span>
-                    <span className="flex items-center gap-1 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-400">
-                      <Clock className="w-3 h-3" />
-                      {period.startTime} - {period.endTime}
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-                    {period.subjectName}
-                  </h3>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Class: {period.className}
-                  </p>
-                </div>
+          {periods.length > 0 && (
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold uppercase tracking-wider">
+                    <th className="p-3">Period</th>
+                    <th className="p-3">Time</th>
+                    <th className="p-3">Subject</th>
+                    <th className="p-3">Class</th>
+                    <th className="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {periods.map((period) => {
+                    const isArrangement = period.isCovering;
+                    const isUncovered = period.coverStatus === 'uncovered';
 
-                {/* Status Badges */}
-                <div className="shrink-0">
-                  {period.isCovering ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold">
-                      <UserCheck className="w-3 h-3" />
-                      Covering
-                    </span>
-                  ) : period.isCovered ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 text-[11px] font-semibold">
-                      <UserX className="w-3 h-3" />
-                      Covered
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800">
-                      Scheduled
-                    </span>
-                  )}
-                </div>
-              </div>
+                    // Normal periods: blue box (blue background)
+                    // Arrangement periods: red box (red background)
+                    // Uncovered periods: grey box
+                    let boxClass = 'bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100';
+                    let statusLabel = period.isCovered ? `Covered by ${period.coveringTeacherName || 'Colleague'}` : 'Scheduled';
 
-              {/* Cover Details Section */}
-              {period.isCovered && (
-                <div className="mt-2 pt-2 border-t border-amber-200/60 dark:border-amber-800/40 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
-                  <span>Covered by: <strong>{period.coveringTeacherName || 'Another Colleague'}</strong></span>
-                  <span className="text-[10px] uppercase font-mono">cover assignment</span>
-                </div>
-              )}
+                    if (isArrangement) {
+                      boxClass = 'bg-rose-50/70 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100';
+                      statusLabel = `Covering for ${period.originalTeacherName || 'Colleague'}`;
+                    } else if (isUncovered) {
+                      boxClass = 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300';
+                      statusLabel = 'Uncovered';
+                    }
 
-              {period.isCovering && (
-                <div className="mt-2 pt-2 border-t border-indigo-200/60 dark:border-indigo-800/40 text-xs text-indigo-800 dark:text-indigo-300 flex items-center justify-between">
-                  <span>Covering for: <strong>{period.originalTeacherName || 'Absent Colleague'}</strong></span>
-                  <span className="text-[10px] uppercase font-mono">cover assignment</span>
-                </div>
-              )}
+                    return (
+                      <tr key={period.id} className={`${boxClass} transition-colors border-b border-slate-200/50 dark:border-slate-800/50`}>
+                        <td className="p-3 font-bold whitespace-nowrap">
+                          <span className={`inline-block px-2.5 py-1 rounded-lg font-bold text-white shadow-sm ${
+                            isArrangement ? 'bg-rose-600' :
+                            isUncovered ? 'bg-slate-500' :
+                            'bg-blue-600'
+                          }`}>
+                            P{period.periodNumber}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono tabular-nums whitespace-nowrap">
+                          {period.startTime} - {period.endTime}
+                        </td>
+                        <td className="p-3 font-semibold">
+                          {period.subjectName}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {period.className}
+                        </td>
+                        <td className="p-3 font-medium">
+                          {statusLabel}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -230,43 +224,52 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
             </div>
           )}
 
-          {classPeriods.map((item, idx) => (
-            <div
-              key={idx}
-              className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3 shadow-sm"
-            >
-              <div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <span className="font-bold">P{item.periodNumber}</span>
-                  <span>·</span>
-                  <span className="font-mono tabular-nums">{item.startTime} - {item.endTime}</span>
-                </div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
-                  {item.subjectName}
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Teacher: <span className="font-medium text-slate-700 dark:text-slate-300">{item.teacherName}</span>
-                </div>
-              </div>
-
-              <div className="text-right">
-                {item.isCovered ? (
-                  <div>
-                    <span className="inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-bold">
-                      Covered
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
-                      by {item.coveringTeacherName || 'Sub'}
-                    </p>
-                  </div>
-                ) : (
-                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                    Regular
-                  </span>
-                )}
-              </div>
+          {classPeriods.length > 0 && (
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold uppercase tracking-wider">
+                    <th className="p-3">Period</th>
+                    <th className="p-3">Time</th>
+                    <th className="p-3">Subject</th>
+                    <th className="p-3">Teacher</th>
+                    <th className="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {classPeriods.map((item, idx) => (
+                    <tr key={idx} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-3 font-bold whitespace-nowrap">
+                        <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-slate-700 text-white shadow-sm">
+                          P{item.periodNumber}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono tabular-nums whitespace-nowrap">
+                        {item.startTime} - {item.endTime}
+                      </td>
+                      <td className="p-3 font-semibold text-slate-900 dark:text-white">
+                        {item.subjectName}
+                      </td>
+                      <td className="p-3 font-medium text-slate-700 dark:text-slate-300">
+                        {item.teacherName}
+                      </td>
+                      <td className="p-3">
+                        {item.isCovered ? (
+                          <span className="inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-bold">
+                            Covered by {item.coveringTeacherName || 'Sub'}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                            Regular
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
