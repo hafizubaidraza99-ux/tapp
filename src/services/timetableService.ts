@@ -1,4 +1,4 @@
-import { getSupabase, runWithSupabaseRetry } from '../lib/supabase';
+import { gatewayRpc } from '../lib/supabase';
 import { getTodayDateString, getDayOfWeekInTimezone } from '../utils/dateUtils';
 import { getStoredSession } from './authService';
 
@@ -59,17 +59,6 @@ export interface ClassArrangementItem {
   coverStatus: string;
 }
 
-export interface ClassTimetableItem {
-  periodNumber: number;
-  periodName?: string;
-  startTime: string;
-  endTime: string;
-  subjectName: string;
-  teacherName: string;
-  isCovered: boolean;
-  coveringTeacherName?: string;
-}
-
 /**
  * Fetch default timetable for the current teacher using secure RPC get_my_default_timetable (phone + PIN)
  */
@@ -92,18 +81,15 @@ export async function getTeacherDefaultTimetable(params: {
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return { periods: [], todayDate, dayName, error: 'Please sign in again to view timetable.' };
   }
 
   try {
-    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_default_timetable', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_default_timetable', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (rpcError) {
       console.warn('Could not query get_my_default_timetable:', rpcError.message);
@@ -151,18 +137,15 @@ export async function getTeacherArrangements(params: {
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return { arrangements: [], error: 'Please sign in again to view arrangements.' };
   }
 
   try {
-    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_arrangements', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_arrangements', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (rpcError) {
       console.warn('Could not query get_my_arrangements:', rpcError.message);
@@ -214,19 +197,16 @@ export async function getTeacherArrangementsByDate(params: {
   const pin = session?.pin || '';
   const targetDate = params.date || getTodayDateString(params.timezone);
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return { arrangements: [], error: 'Please sign in again to view arrangement periods.' };
   }
 
   try {
-    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_arrangements_by_date', {
-        p_phone: phone,
-        p_pin: pin,
-        p_date: targetDate,
-      })
-    );
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_arrangements_by_date', {
+      p_phone: phone,
+      p_pin: pin,
+      p_date: targetDate,
+    });
 
     if (rpcError) {
       console.warn('Could not query get_my_arrangements_by_date:', rpcError.message);
@@ -278,18 +258,15 @@ export async function getTeacherClassTimetable(params: {
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return { className: '', periods: [], error: 'Please sign in again to view class timetable.' };
   }
 
   try {
-    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_class_timetable', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_class_timetable', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (rpcError) {
       console.warn('Could not query get_my_class_timetable:', rpcError.message);
@@ -342,18 +319,15 @@ export async function getTeacherClassArrangements(params: {
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return { arrangements: [], error: 'Please sign in again to view class arrangements.' };
   }
 
   try {
-    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_class_arrangements', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_class_arrangements', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (rpcError) {
       console.warn('Could not query get_my_class_arrangements:', rpcError.message);
@@ -413,19 +387,12 @@ export async function getTeacherTodayTimetable(params: {
   const session = getStoredSession();
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { periods: [], todayDate, dayName, error: 'The service is not ready. Please try again later.' };
-  }
-
   try {
-    const { data: rpcData, error: rpcError } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_timetable', {
-        p_teacher_id: params.teacherId,
-        p_pin: pin,
-        p_date: todayDate,
-      })
-    );
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_timetable', {
+      p_teacher_id: params.teacherId,
+      p_pin: pin,
+      p_date: todayDate,
+    });
 
     if (rpcError) {
       return { periods: [], todayDate, dayName, error: "Could not load your timetable. Please try again." };
@@ -473,75 +440,6 @@ export async function getTeacherTodayTimetable(params: {
       todayDate,
       dayName,
       error: err?.message || 'Failed to load timetable.',
-    };
-  }
-}
-
-/**
- * For Head Teachers: fetch full class timetable for today
- */
-export async function getClassTodayTimetable(params: {
-  schoolId: string;
-  classId: string;
-  timezone: string;
-}): Promise<{
-  className: string;
-  periods: ClassTimetableItem[];
-  error?: string;
-}> {
-  const todayDate = getTodayDateString(params.timezone);
-  const dayOfWeek = getDayOfWeekInTimezone(params.timezone);
-
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { className: '', periods: [], error: 'The service is not ready. Please try again later.' };
-  }
-
-  try {
-    const { data: teachersData } = await supabase
-      .from('teachers')
-      .select('id, name')
-      .eq('school_id', params.schoolId);
-    const teacherMap = new Map<string, string>();
-    (teachersData || []).forEach((t: { id: string; name: string }) => teacherMap.set(t.id, t.name));
-
-    const { data: classEntries, error: entryError } = await supabase
-      .from('timetable_entries')
-      .select('*')
-      .eq('school_id', params.schoolId)
-      .eq('class_id', params.classId)
-      .eq('weekday', dayOfWeek);
-
-    if (entryError) {
-      return { className: 'Class', periods: [], error: "Could not load your timetable. Please try again." };
-    }
-
-    const periods: ClassTimetableItem[] = (classEntries || []).map((entry: any) => {
-      const teacherName = teacherMap.get(entry.teacher_id) || 'Assigned Teacher';
-
-      return {
-        periodNumber: entry.period_number || 1,
-        periodName: undefined,
-        startTime: '--:--',
-        endTime: '--:--',
-        subjectName: 'Subject',
-        teacherName,
-        isCovered: false,
-        coveringTeacherName: undefined,
-      };
-    });
-
-    periods.sort((a, b) => a.periodNumber - b.periodNumber);
-
-    return {
-      className: 'Class',
-      periods,
-    };
-  } catch (err: any) {
-    return {
-      className: '',
-      periods: [],
-      error: err?.message || 'Error fetching class timetable.',
     };
   }
 }

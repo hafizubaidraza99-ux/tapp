@@ -1,4 +1,4 @@
-import { getSupabase, runWithSupabaseRetry } from '../lib/supabase';
+import { gatewayGetSchoolSettings } from '../lib/supabase';
 import { School, SchoolSettings } from '../types';
 
 export async function getSchoolDetails(schoolId: string): Promise<{
@@ -19,8 +19,7 @@ export async function getSchoolDetails(schoolId: string): Promise<{
     created_at: new Date().toISOString(),
   };
 
-  const supabase = getSupabase();
-  if (!supabase || !schoolId) {
+  if (!schoolId) {
     return {
       school: defaultSchool,
       settings: defaultSettings,
@@ -28,10 +27,7 @@ export async function getSchoolDetails(schoolId: string): Promise<{
   }
 
   try {
-    // Query school_settings instead of schools table (schools table has RLS restricting anon reads)
-    const settingsRes = await runWithSupabaseRetry(() =>
-      supabase.from('school_settings').select('*').eq('school_id', schoolId).maybeSingle()
-    );
+    const settingsRes = await gatewayGetSchoolSettings(schoolId);
 
     let settings = defaultSettings;
     if (settingsRes.data) {

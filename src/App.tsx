@@ -13,7 +13,7 @@ import { TeacherSession, TabKey } from './types';
 import { getStoredSession, getRememberedTeacher, clearRememberedTeacher, clearSession } from './services/authService';
 import { removePushTokenOnLogout, requestAndRegisterPushToken, setupForegroundMessageHandler } from './services/pushService';
 import { NotificationPromptModal } from './components/common/NotificationPromptModal';
-import { initSupabase, isSupabaseReady } from './lib/supabase';
+import { initSupabase } from './lib/supabase';
 
 // TEMPORARY PREVIEW BYPASS:
 // Set PREVIEW_MODE = true to bypass the Join/PIN login flow and render the main
@@ -44,7 +44,7 @@ export default function App() {
   );
   const [authMode, setAuthMode] = useState<'login' | 'join'>('login');
   const [currentTab, setCurrentTab] = useState<TabKey>('today');
-  const [supabaseReady, setSupabaseReady] = useState<boolean>(false);
+  const [supabaseReady, setSupabaseReady] = useState<boolean>(true);
   const [initializing, setInitializing] = useState<boolean>(!PREVIEW_MODE);
   const [showNotificationModal, setShowNotificationModal] = useState<boolean>(false);
 

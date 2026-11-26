@@ -1,73 +1,30 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+export const GATEWAY_URL = 'https://yutnoyupoxlmxrcoqfui.supabase.co/functions/v1/api';
 
-const DEFAULT_SUPABASE_URL = 'https://yutnoyupoxlmxrcoqfui.supabase.co';
-
-let clientInstance: SupabaseClient | null = null;
-let cachedAnonKey: string | null = null;
-let cachedUrl: string = DEFAULT_SUPABASE_URL;
-
-// Attempt to load from Vite environment variables first
-const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || (import.meta as any).env?.SUPABASE_URL;
-const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || (import.meta as any).env?.SUPABASE_ANON_KEY;
-
-if (envKey) {
-  cachedUrl = envUrl || DEFAULT_SUPABASE_URL;
-  cachedAnonKey = envKey;
-  clientInstance = createClient(cachedUrl, envKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-  });
+export interface GatewayResponse<T = any> {
+  data: T | null;
+  error: any;
 }
 
 /**
- * Fetch configuration from backend server if not already available
+ * Gateway is always ready; no client-side key or /api/config fetch required.
  */
-export async function initSupabase(): Promise<{ client: SupabaseClient | null; configured: boolean; error?: string }> {
-  if (clientInstance) {
-    return { client: clientInstance, configured: true };
-  }
-
-  try {
-    const res = await fetch('/api/config');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.supabaseAnonKey) {
-        cachedUrl = data.supabaseUrl || DEFAULT_SUPABASE_URL;
-        cachedAnonKey = data.supabaseAnonKey;
-        clientInstance = createClient(cachedUrl, cachedAnonKey!, {
-          auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-          },
-        });
-        return { client: clientInstance, configured: true };
-      }
-    }
-  } catch (err) {
-    console.warn('Could not fetch Supabase configuration from /api/config:', err);
-  }
-
-  return { client: null, configured: false, error: 'Supabase Anon Key is not yet configured in AI Studio Secrets.' };
+export async function initSupabase(): Promise<{ client: null; configured: boolean; error?: string }> {
+  return { client: null, configured: true };
 }
 
-/**
- * Get active Supabase client instance
- */
-export function getSupabase(): SupabaseClient | null {
-  return clientInstance;
+export function getSupabase(): null {
+  return null;
 }
 
 export function isSupabaseReady(): boolean {
-  return clientInstance !== null;
+  return true;
 }
 
 export function getProjectInfo() {
   return {
     projectId: 'yutnoyupoxlmxrcoqfui',
-    url: cachedUrl,
-    hasKey: Boolean(cachedAnonKey),
+    url: GATEWAY_URL,
+    hasKey: true,
   };
 }
 
@@ -76,7 +33,7 @@ export function isTransientSupabaseError(err: any): boolean {
   const code = String(err.code || '').toUpperCase();
   if (code === 'PGRST003') return true;
   const status = Number(err.status || err.statusCode || 0);
-  if (status === 503 || status === 504 || status === 429) return true;
+  if (status >= 500 || status === 429) return true;
   const msg = String(err.message || err.details || '').toLowerCase();
   return (
     msg.includes('connection pool') ||
@@ -114,3 +71,72 @@ export async function runWithSupabaseRetry<T extends { error: any }>(
   }
 }
 
+async function postGateway<T = any>(payload: Record<string, any>): Promise<GatewayResponse<T>> {
+  try {
+    return await runWithSupabaseRetry<GatewayResponse<T>>(async () => {
+      const res = await fetch(GATEWAY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const body = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const message =
+          body?.error?.message ||
+          body?.message ||
+          `Request failed with status ${res.status}`;
+        return {
+          data: null,
+          error: {
+            ...(body?.error && typeof body.error === 'object' ? body.error : {}),
+            message,
+            status: res.status,
+          },
+        };
+      }
+
+      if (body && typeof body === 'object' && ('data' in body || 'error' in body)) {
+        return {
+          data: body.data ?? null,
+          error: body.error ?? null,
+        };
+      }
+
+      return {
+        data: body ?? null,
+        error: null,
+      };
+    });
+  } catch (err: any) {
+    return {
+      data: null,
+      error: {
+        message: err?.message || 'Network request failed',
+      },
+    };
+  }
+}
+
+export async function gatewayRpc<T = any>(
+  name: string,
+  args: Record<string, any> = {}
+): Promise<GatewayResponse<T>> {
+  return postGateway<T>({
+    action: 'rpc',
+    name,
+    args,
+  });
+}
+
+export async function gatewayGetSchoolSettings<T = any>(
+  schoolId: string
+): Promise<GatewayResponse<T>> {
+  return postGateway<T>({
+    action: 'get_school_settings',
+    args: { school_id: schoolId },
+  });
+}

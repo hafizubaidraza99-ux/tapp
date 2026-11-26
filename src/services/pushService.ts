@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
-import { getSupabase } from '../lib/supabase';
+import { gatewayRpc } from '../lib/supabase';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDxgqkp2VbpVy6eV7d3lRfeVnUP92o2ZOw",
@@ -79,13 +79,7 @@ export async function requestAndRegisterPushToken(teacherId: string, pin: string
       return false;
     }
 
-    const supabase = getSupabase();
-    if (!supabase) {
-      console.warn('Push registration failed: Supabase client is not ready.');
-      return false;
-    }
-
-    const { error } = await supabase.rpc('register_teacher_device_token', {
+    const { error } = await gatewayRpc('register_teacher_device_token', {
       p_teacher_id: teacherId,
       p_pin: pin,
       p_token: currentToken,
@@ -123,18 +117,7 @@ export async function removePushTokenOnLogout(teacherId: string, pin: string): P
       return;
     }
 
-    const supabase = getSupabase();
-    if (!supabase) {
-      try {
-        localStorage.removeItem('teacher_app_push_token');
-        localStorage.removeItem('teacher_app_push_registered');
-      } catch (e) {
-        console.warn('Failed to clear push token state in localStorage:', e);
-      }
-      return;
-    }
-
-    const { error } = await supabase.rpc('remove_teacher_device_token', {
+    const { error } = await gatewayRpc('remove_teacher_device_token', {
       p_teacher_id: teacherId,
       p_pin: pin,
       p_token: token,

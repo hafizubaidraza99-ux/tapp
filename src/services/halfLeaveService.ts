@@ -1,4 +1,4 @@
-import { getSupabase, runWithSupabaseRetry } from '../lib/supabase';
+import { gatewayRpc } from '../lib/supabase';
 import { getStoredSession } from './authService';
 
 export type HalfLeaveStatus = 'pending' | 'applied' | 'approved' | 'rejected' | 'cancelled' | null;
@@ -63,18 +63,15 @@ export async function getMyHalfLeave(): Promise<{
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return { info: null, error: 'Please sign in again.' };
   }
 
   try {
-    const { data, error } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_half_leave', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data, error } = await gatewayRpc('get_my_half_leave', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (error) {
       console.warn('Could not load half leave status:', error);
@@ -123,18 +120,15 @@ export async function getMyHalfLeavePeriods(): Promise<{
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return { periods: [], error: 'Please sign in again.' };
   }
 
   try {
-    const { data, error } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_half_leave_periods', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data, error } = await gatewayRpc('get_my_half_leave_periods', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (error) {
       console.warn('Could not load half leave periods:', error);
@@ -165,18 +159,15 @@ export async function applyMyHalfLeave(): Promise<ApplyHalfLeaveResultCode> {
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return 'invalid';
   }
 
   try {
-    const { data, error } = await runWithSupabaseRetry(() =>
-      supabase.rpc('apply_my_half_leave', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data, error } = await gatewayRpc('apply_my_half_leave', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (error) {
       console.warn('Could not apply half leave:', error);
@@ -209,18 +200,15 @@ export async function cancelMyHalfLeave(): Promise<CancelHalfLeaveResultCode> {
   const phone = session?.whatsappNumber || '';
   const pin = session?.pin || '';
 
-  const supabase = getSupabase();
-  if (!supabase || !phone || !pin) {
+  if (!phone || !pin) {
     return 'invalid';
   }
 
   try {
-    const { data, error } = await runWithSupabaseRetry(() =>
-      supabase.rpc('cancel_my_half_leave', {
-        p_phone: phone,
-        p_pin: pin,
-      })
-    );
+    const { data, error } = await gatewayRpc('cancel_my_half_leave', {
+      p_phone: phone,
+      p_pin: pin,
+    });
 
     if (error) {
       console.warn('Could not cancel half leave:', error);

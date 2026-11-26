@@ -1,4 +1,4 @@
-import { getSupabase, runWithSupabaseRetry } from '../lib/supabase';
+import { gatewayRpc } from '../lib/supabase';
 import { AttendanceRecord, AttendanceStatus } from '../types';
 import { getTodayDateString } from '../utils/dateUtils';
 import { getStoredSession } from './authService';
@@ -32,24 +32,12 @@ export async function getTodayAttendance(params: {
   const todayDate = getTodayDateString(params.timezone);
   const session = getStoredSession();
   const pin = session?.pin || '';
-  const supabase = getSupabase();
-
-  if (!supabase) {
-    return {
-      record: null,
-      todayDate,
-      error: 'The service is not ready. Please try again later.',
-    };
-  }
-
   try {
-    const { data, error } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_attendance', {
-        p_teacher_id: params.teacherId,
-        p_pin: pin,
-        p_limit: 60,
-      })
-    );
+    const { data, error } = await gatewayRpc('get_my_attendance', {
+      p_teacher_id: params.teacherId,
+      p_pin: pin,
+      p_limit: 60,
+    });
 
     if (error) {
       console.warn('Could not fetch today attendance:', error);
@@ -99,22 +87,12 @@ export async function submitTodayAttendance(params: {
     };
   }
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return {
-      success: false,
-      error: 'The service is not ready. Please try again later.',
-    };
-  }
-
   try {
-    const { data, error } = await runWithSupabaseRetry(() =>
-      supabase.rpc('submit_today_attendance', {
-        p_phone: phone,
-        p_pin: pin,
-        p_status: params.status,
-      })
-    );
+    const { data, error } = await gatewayRpc('submit_today_attendance', {
+      p_phone: phone,
+      p_pin: pin,
+      p_status: params.status,
+    });
 
     if (error) {
       console.warn('Could not submit attendance:', error);
@@ -201,19 +179,12 @@ export async function getTeacherAttendanceHistory(params: {
 }> {
   const session = getStoredSession();
   const pin = session?.pin || '';
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { records: [], error: 'The service is not ready. Please try again later.' };
-  }
-
   try {
-    const { data, error } = await runWithSupabaseRetry(() =>
-      supabase.rpc('get_my_attendance', {
-        p_teacher_id: params.teacherId,
-        p_pin: pin,
-        p_limit: params.limit || 60,
-      })
-    );
+    const { data, error } = await gatewayRpc('get_my_attendance', {
+      p_teacher_id: params.teacherId,
+      p_pin: pin,
+      p_limit: params.limit || 60,
+    });
 
     if (error) {
       console.warn('Could not fetch attendance history:', error);

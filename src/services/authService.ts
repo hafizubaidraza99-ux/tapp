@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase';
+import { gatewayRpc } from '../lib/supabase';
 import { TeacherSession } from '../types';
 import { hashActivationCode } from '../utils/cryptoUtils';
 
@@ -46,20 +46,12 @@ export async function joinTeacherApp(params: {
     return { success: false, error: UNIFIED_AUTH_ERROR };
   }
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return {
-      success: false,
-      error: 'The service is not ready. Please try again later.',
-    };
-  }
-
   try {
     // 1. Hash the activation code using SHA256("act_code_v1:" + normalised code)
     const codeHash = await hashActivationCode(params.activationCode);
 
-    // 2. Call SECURITY DEFINER RPC
-    const { data, error } = await supabase.rpc('redeem_teacher_activation_code', {
+    // 2. Call SECURITY DEFINER RPC via gateway
+    const { data, error } = await gatewayRpc('redeem_teacher_activation_code', {
       p_code_hash: codeHash,
       p_phone: phone,
       p_pin: pin,
@@ -133,16 +125,8 @@ export async function loginWithPin(phone: string, pin: string): Promise<{
     return { success: false, error: UNIFIED_AUTH_ERROR };
   }
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return {
-      success: false,
-      error: 'The service is not ready. Please try again later.',
-    };
-  }
-
   try {
-    const { data, error } = await supabase.rpc('verify_teacher_pin', {
+    const { data, error } = await gatewayRpc('verify_teacher_pin', {
       p_phone: cleanedPhone,
       p_pin: cleanedPin,
     });
@@ -220,13 +204,8 @@ export async function changeTeacherPin(params: {
     return { success: false, error: 'Could not resolve phone number for teacher.' };
   }
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { success: false, error: 'Supabase client is not ready.' };
-  }
-
   try {
-    const { data, error } = await supabase.rpc('change_teacher_pin', {
+    const { data, error } = await gatewayRpc('change_teacher_pin', {
       p_phone: phone,
       p_old_pin: cleanedOldPin,
       p_new_pin: cleanedNewPin,
@@ -265,13 +244,8 @@ export async function loginWithPinById(teacherId: string, pin: string): Promise<
     return { success: false, error: 'Please enter a 4-digit PIN.' };
   }
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { success: false, error: 'The service is not ready. Please try again later.' };
-  }
-
   try {
-    const { data, error } = await supabase.rpc('verify_teacher_pin_by_id', {
+    const { data, error } = await gatewayRpc('verify_teacher_pin_by_id', {
       p_teacher_id: teacherId,
       p_pin: cleanedPin,
     });
