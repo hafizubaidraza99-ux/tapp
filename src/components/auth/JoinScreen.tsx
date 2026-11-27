@@ -23,7 +23,7 @@ export const JoinScreen: React.FC<JoinScreenProps> = ({ onJoined, onSwitchToLogi
     setNotice(null);
 
     if (!phone.trim()) {
-      setError('Please enter your WhatsApp phone number.');
+      setError('Please enter your phone number.');
       return;
     }
 
@@ -93,7 +93,7 @@ export const JoinScreen: React.FC<JoinScreenProps> = ({ onJoined, onSwitchToLogi
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1.5">
-              WhatsApp Phone Number
+              Phone Number
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
@@ -110,7 +110,7 @@ export const JoinScreen: React.FC<JoinScreenProps> = ({ onJoined, onSwitchToLogi
               />
             </div>
             <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-1">
-              Must match your registered WhatsApp number on the Principal Dashboard
+              Must match your registered phone number on the Principal Dashboard
             </p>
           </div>
 

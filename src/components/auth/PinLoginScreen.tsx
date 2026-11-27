@@ -79,7 +79,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
     }
 
     if (!rememberedTeacher && !phone.trim()) {
-      setError('Please enter your WhatsApp phone number.');
+      setError('Please enter your phone number.');
       return;
     }
 
@@ -142,7 +142,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
               Sign in with PIN
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-              Enter your WhatsApp phone number and 4-digit PIN
+              Enter your phone number and 4-digit PIN
             </p>
           </div>
         )}
@@ -158,7 +158,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
           {!rememberedTeacher && (
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1.5">
-                WhatsApp phone number
+                Phone number
               </label>
               <input
                 type="tel"
