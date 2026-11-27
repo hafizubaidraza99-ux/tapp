@@ -344,7 +344,7 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
                     {arrangements.map((item) => (
                       <tr key={item.id} className="bg-white dark:bg-neutral-950 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900">
                         <td className="p-3 font-bold whitespace-nowrap border-l-2 border-l-[#C9A227]">
-                          <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-black dark:bg-white text-white dark:text-black shadow-sm">
+                          <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-[#DC2626] text-white shadow-sm">
                             P{item.periodNumber}
                           </span>
                           <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
@@ -466,13 +466,7 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
                               !isUncovered ? 'border-l-2 border-l-[#C9A227]' : ''
                             }`}
                           >
-                            <span
-                              className={`inline-block px-2.5 py-1 rounded-lg font-bold shadow-sm ${
-                                isUncovered
-                                  ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
-                                  : 'bg-black dark:bg-white text-white dark:text-black'
-                              }`}
-                            >
+                            <span className="inline-block px-2.5 py-1 rounded-lg font-bold bg-[#DC2626] text-white shadow-sm">
                               P{item.periodNumber}
                             </span>
                             {!isUncovered && (
