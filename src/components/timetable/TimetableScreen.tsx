@@ -12,7 +12,7 @@ import {
   getTeacherDefaultTimetable,
   getTeacherArrangementsByDate,
   getTeacherClassTimetable,
-  getTeacherClassArrangements,
+  getClassArrangementsByDate,
   getTeacherPaperDuty,
   DefaultPeriodItem,
   ArrangementPeriodItem,
@@ -45,6 +45,14 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
   const [arrangementsError, setArrangementsError] = useState<string | null>(null);
   const arrangementDateRef = useRef<string>(arrangementDate);
   const arrangementsReqIdRef = useRef<number>(0);
+
+  const [classArrangementDate, setClassArrangementDate] = useState<string>(() =>
+    getTodayDateString(session.schoolTimezone)
+  );
+  const [classArrangementsLoading, setClassArrangementsLoading] = useState(false);
+  const [classArrangementsError, setClassArrangementsError] = useState<string | null>(null);
+  const classArrangementDateRef = useRef<string>(classArrangementDate);
+  const classArrangementsReqIdRef = useRef<number>(0);
 
   const loadArrangementsForDate = useCallback(
     async (targetDate: string) => {
@@ -85,12 +93,46 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
     loadArrangementsForDate(nextDate);
   };
 
+  const loadClassArrangementsForDate = useCallback(async (targetDate: string) => {
+    const reqId = ++classArrangementsReqIdRef.current;
+    setClassArrangementsLoading(true);
+    setClassArrangementsError(null);
+    try {
+      const classArrangeData = await getClassArrangementsByDate(targetDate);
+      if (reqId !== classArrangementsReqIdRef.current) return;
+      if (classArrangeData.error) {
+        setClassArrangementsError(classArrangeData.error);
+        setClassArrangements([]);
+      } else {
+        setClassArrangements(classArrangeData.arrangements);
+      }
+    } catch {
+      if (reqId !== classArrangementsReqIdRef.current) return;
+      setClassArrangementsError('Could not load class arrangements. Please try again.');
+      setClassArrangements([]);
+    } finally {
+      if (reqId === classArrangementsReqIdRef.current) {
+        setClassArrangementsLoading(false);
+      }
+    }
+  }, []);
+
+  const handleClassArrangementDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextDate = e.target.value || getTodayDateString(session.schoolTimezone);
+    setClassArrangementDate(nextDate);
+    classArrangementDateRef.current = nextDate;
+    loadClassArrangementsForDate(nextDate);
+  };
+
   const loadTimetable = useCallback(async () => {
     setLoading(true);
     setError(null);
     setArrangementsError(null);
+    setClassArrangementsError(null);
     const reqId = ++arrangementsReqIdRef.current;
+    const classReqId = ++classArrangementsReqIdRef.current;
     const targetDate = arrangementDateRef.current || getTodayDateString(session.schoolTimezone);
+    const targetClassDate = classArrangementDateRef.current || getTodayDateString(session.schoolTimezone);
     try {
       const [defaultData, arrangeData, classData, classArrangeData, paperDutyData] = await Promise.all([
         getTeacherDefaultTimetable({
@@ -109,11 +151,7 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
           teacherId: session.teacherId,
           timezone: session.schoolTimezone,
         }),
-        getTeacherClassArrangements({
-          schoolId: session.schoolId,
-          teacherId: session.teacherId,
-          timezone: session.schoolTimezone,
-        }),
+        getClassArrangementsByDate(targetClassDate),
         getTeacherPaperDuty(),
       ]);
 
@@ -141,8 +179,13 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
         setClassPeriods([]);
       }
 
-      if (classArrangeData.arrangements) {
-        setClassArrangements(classArrangeData.arrangements);
+      if (classReqId === classArrangementsReqIdRef.current) {
+        if (classArrangeData.error) {
+          setClassArrangementsError(classArrangeData.error);
+          setClassArrangements([]);
+        } else {
+          setClassArrangements(classArrangeData.arrangements);
+        }
       }
 
       setPaperDuties(paperDutyData.duties || []);
@@ -158,6 +201,8 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
   }, [loadTimetable]);
 
   const hasClassTimetable = classPeriods.length > 0;
+  const schoolTodayDate = todayDate || getTodayDateString(session.schoolTimezone);
+  const isClassDateToday = classArrangementDate === schoolTodayDate;
 
   return (
     <div className="flex-1 p-5 pb-8 overflow-y-auto space-y-4">
@@ -427,19 +472,41 @@ export const TimetableScreen: React.FC<TimetableScreenProps> = ({ session }) => 
             )}
           </div>
 
-          {/* Bottom Section: Arrangements Today */}
+          {/* Bottom Section: Arrangements Today / by Date */}
           <div className="space-y-3 pt-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300 px-1">
-              Arrangements Today
-            </h3>
+            <div className="flex items-center justify-between gap-2 px-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                {isClassDateToday ? 'Arrangements Today' : `Arrangements on ${classArrangementDate}`}
+              </h3>
+              <input
+                type="date"
+                aria-label="Class arrangement date"
+                value={classArrangementDate}
+                onChange={handleClassArrangementDateChange}
+                className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
+              />
+            </div>
 
-            {classArrangements.length === 0 && !loading && (
-              <div className="p-4 bg-white dark:bg-neutral-950 rounded-2xl border border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-                No arrangements today.
+            {classArrangementsError && !classArrangementsLoading && (
+              <div className="p-3 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 text-xs text-neutral-800 dark:text-neutral-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <span>{classArrangementsError}</span>
               </div>
             )}
 
-            {classArrangements.length > 0 && (
+            {classArrangementsLoading && (
+              <div className="p-4 bg-white dark:bg-neutral-950 rounded-2xl border border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                Loading class arrangements...
+              </div>
+            )}
+
+            {!classArrangementsLoading && !classArrangementsError && classArrangements.length === 0 && !loading && (
+              <div className="p-4 bg-white dark:bg-neutral-950 rounded-2xl border border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                {isClassDateToday ? 'No arrangements today.' : 'No arrangements on this day.'}
+              </div>
+            )}
+
+            {!classArrangementsLoading && classArrangements.length > 0 && (
               <div className="overflow-x-auto rounded-2xl border border-[#C9A227] bg-white dark:bg-neutral-950 shadow-sm">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>

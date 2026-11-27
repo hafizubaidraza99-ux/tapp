@@ -372,6 +372,68 @@ export async function getTeacherClassArrangements(params: {
 }
 
 /**
+ * Fetch head teacher's class arrangement periods for a specific date using secure RPC get_my_class_arrangements_by_date (phone + PIN + date)
+ */
+export async function getClassArrangementsByDate(date: string): Promise<{
+  arrangements: ClassArrangementItem[];
+  error?: string;
+}> {
+  const session = getStoredSession();
+  const phone = session?.whatsappNumber || '';
+  const pin = session?.pin || '';
+  const targetDate = date || getTodayDateString(session?.schoolTimezone || 'UTC');
+
+  if (!phone || !pin) {
+    return { arrangements: [], error: 'Please sign in again to view class arrangements.' };
+  }
+
+  try {
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_class_arrangements_by_date', {
+      p_phone: phone,
+      p_pin: pin,
+      p_date: targetDate,
+    });
+
+    if (rpcError) {
+      console.warn('Could not query get_my_class_arrangements_by_date:', rpcError.message);
+      return { arrangements: [], error: 'Could not load class arrangements. Please try again.' };
+    }
+
+    const rows = (rpcData as any[]) || [];
+    const resultArrangements: ClassArrangementItem[] = [];
+
+    rows.forEach((row: any) => {
+      const startTime = row.out_period_start ? String(row.out_period_start).slice(0, 5) : '--:--';
+      const endTime = row.out_period_end ? String(row.out_period_end).slice(0, 5) : '--:--';
+      const coverStatus = row.out_cover_status || 'uncovered';
+      const coveringTeacherName =
+        coverStatus === 'covered' && row.out_assigned_teacher_name
+          ? row.out_assigned_teacher_name
+          : 'Uncovered';
+
+      resultArrangements.push({
+        id: row.out_id || `${targetDate}-${row.out_period_number}`,
+        periodNumber: row.out_period_number || 1,
+        startTime,
+        endTime,
+        subjectName: row.out_subject_name || 'Subject',
+        className: row.out_class_name || 'Class',
+        absentTeacherName: row.out_original_teacher_name || 'Teacher',
+        coveringTeacherName,
+        coverStatus,
+      });
+    });
+
+    resultArrangements.sort((a, b) => a.periodNumber - b.periodNumber || a.startTime.localeCompare(b.startTime));
+
+    return { arrangements: resultArrangements };
+  } catch (err: any) {
+    console.warn('Error in getClassArrangementsByDate:', err);
+    return { arrangements: [], error: 'Could not load class arrangements. Please try again.' };
+  }
+}
+
+/**
  * Fetch today's timetable for the current teacher using secure RPC get_my_timetable.
  * (Retained for backward compatibility if needed)
  */
