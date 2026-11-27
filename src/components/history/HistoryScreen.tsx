@@ -53,14 +53,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ session }) => {
   });
 
   return (
-    <div className="flex-1 p-5 pb-8 overflow-y-auto space-y-4">
+    <div className="flex-1 p-5 pb-8 overflow-y-auto space-y-4 bg-white dark:bg-neutral-950">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+          <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
             Attendance Log
           </span>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+          <h2 className="text-lg font-bold text-black dark:text-white">
             My Past Attendance
           </h2>
         </div>
@@ -69,14 +69,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ session }) => {
           onClick={loadHistory}
           disabled={loading}
           aria-label="Refresh attendance history"
-          className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="w-9 h-9 rounded-full bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {error && (
-        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+        <div className="p-3 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 text-xs text-neutral-800 dark:text-neutral-200 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
           <span>{error}</span>
         </div>
@@ -84,34 +84,43 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ session }) => {
 
       {/* Summary KPI Strip */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-center shadow-sm">
-          <span className="text-[10px] uppercase font-bold text-slate-400 block">Rate</span>
-          <span className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+        <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-950 border border-[#C9A227] text-center shadow-sm">
+          <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 block">Rate</span>
+          <span className="text-lg font-bold text-black dark:text-white font-mono tabular-nums">
             {attendanceRate}%
           </span>
         </div>
-        <div className="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 text-center shadow-sm">
-          <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Present</span>
-          <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 font-mono tabular-nums">
+        <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-center shadow-sm">
+          <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 inline-flex items-center justify-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+            Present
+          </span>
+          <span className="text-lg font-bold text-black dark:text-white font-mono tabular-nums block">
             {presentCount}
           </span>
         </div>
-        <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 text-center shadow-sm">
-          <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Late</span>
-          <span className="text-lg font-bold text-amber-700 dark:text-amber-300 font-mono tabular-nums">
+        <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-center shadow-sm">
+          <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 inline-flex items-center justify-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+            Late
+          </span>
+          <span className="text-lg font-bold text-black dark:text-white font-mono tabular-nums block">
             {lateCount}
           </span>
         </div>
-        <div className="p-2.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40 text-center shadow-sm">
-          <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block">Absent</span>
-          <span className="text-lg font-bold text-rose-700 dark:text-rose-300 font-mono tabular-nums">
+        <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-center shadow-sm">
+          <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 inline-flex items-center justify-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
+            Absent
+          </span>
+          <span className="text-lg font-bold text-black dark:text-white font-mono tabular-nums block">
             {absentCount}
           </span>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl overflow-x-auto text-xs font-medium">
+      <div className="flex items-center gap-1 p-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-x-auto text-xs font-medium">
         {['all', 'present', 'late', 'absent'].map((f) => (
           <button
             key={f}
@@ -119,8 +128,8 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ session }) => {
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg capitalize whitespace-nowrap transition-colors ${
               filter === f
-                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm font-semibold'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                ? 'bg-black dark:bg-white text-white dark:text-black border border-[#C9A227] shadow-sm font-semibold'
+                : 'text-neutral-500 hover:text-black dark:text-neutral-400 dark:hover:text-white'
             }`}
           >
             {f}
@@ -131,12 +140,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ session }) => {
       {/* Records List */}
       <div className="space-y-2.5">
         {filteredRecords.length === 0 && !loading && (
-          <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
-            <HistoryIcon className="w-10 h-10 text-slate-400 mx-auto mb-2 stroke-[1.5]" />
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <div className="text-center py-12 px-4 bg-white dark:bg-neutral-950 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+            <HistoryIcon className="w-10 h-10 text-neutral-400 mx-auto mb-2 stroke-[1.5]" />
+            <p className="text-sm font-semibold text-black dark:text-white">
               No Attendance Records
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               No records found matching the selected filter.
             </p>
           </div>
@@ -147,37 +156,37 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ session }) => {
           return (
             <div
               key={record.id}
-              className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3 shadow-sm"
+              className="p-3.5 rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-3 shadow-sm"
             >
               <div className="flex items-center gap-3">
                 <div className="shrink-0">
                   {record.status === 'present' && (
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white flex items-center justify-center">
                       <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
                     </div>
                   )}
                   {record.status === 'late' && (
-                    <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white flex items-center justify-center">
                       <Clock className="w-5 h-5 stroke-[2.2]" />
                     </div>
                   )}
                   {record.status === 'absent' && (
-                    <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white flex items-center justify-center">
                       <XCircle className="w-5 h-5 stroke-[2.2]" />
                     </div>
                   )}
                   {(record.status === 'no_reply' || record.status === 'pending') && (
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 flex items-center justify-center">
                       <Calendar className="w-5 h-5 stroke-[2]" />
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  <h4 className="text-sm font-semibold text-black dark:text-white">
                     {friendly}
                   </h4>
-                  <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                  <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                     <span className="font-mono tabular-nums">{record.date}</span>
                     <span aria-hidden="true">·</span>
                     <span className="capitalize font-mono">via {record.source || 'app'}</span>
@@ -186,21 +195,22 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ session }) => {
               </div>
 
               <div className="text-right">
-                <span
-                  className={`text-xs font-bold uppercase tracking-wider block ${
-                    record.status === 'present'
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : record.status === 'late'
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : record.status === 'absent'
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : 'text-slate-500'
-                  }`}
-                >
+                <span className="text-xs font-bold uppercase tracking-wider inline-flex items-center justify-end gap-1.5 text-black dark:text-white">
+                  <span
+                    className={`w-2 h-2 rounded-full inline-block ${
+                      record.status === 'present'
+                        ? 'bg-emerald-500'
+                        : record.status === 'late'
+                        ? 'bg-amber-500'
+                        : record.status === 'absent'
+                        ? 'bg-rose-500'
+                        : 'bg-neutral-400'
+                    }`}
+                  />
                   {record.status}
                 </span>
                 {record.updated_at && (
-                  <span className="text-[10px] font-mono tabular-nums text-slate-400 mt-0.5 block">
+                  <span className="text-[10px] font-mono tabular-nums text-neutral-400 dark:text-neutral-500 mt-0.5 block">
                     {new Date(record.updated_at).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',

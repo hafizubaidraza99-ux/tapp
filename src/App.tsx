@@ -171,14 +171,14 @@ export default function App() {
   if (initializing) {
     return (
       <IPhoneFrame>
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white animate-pulse mb-3">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-white dark:bg-neutral-950">
+          <div className="w-12 h-12 rounded-2xl bg-black dark:bg-white border border-[#C9A227] flex items-center justify-center text-white dark:text-black animate-pulse mb-3">
             <span className="font-bold text-lg">TA</span>
           </div>
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+          <p className="text-sm font-semibold text-black dark:text-white">
             Teacher Attendance
           </p>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
             Loading secure connection...
           </p>
         </div>

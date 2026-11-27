@@ -10,6 +10,8 @@ export async function getSchoolDetails(schoolId: string): Promise<{
     send_time: '07:00',
     reminder_minutes: 30,
     cutoff_time: '08:00',
+    vacation_start: null,
+    vacation_end: null,
   };
 
   const defaultSchool: School = {
@@ -31,9 +33,12 @@ export async function getSchoolDetails(schoolId: string): Promise<{
 
     let settings = defaultSettings;
     if (settingsRes.data) {
+      const raw = settingsRes.data as Partial<SchoolSettings>;
       settings = {
         ...defaultSettings,
-        ...(settingsRes.data as SchoolSettings),
+        ...raw,
+        vacation_start: raw.vacation_start ? String(raw.vacation_start) : null,
+        vacation_end: raw.vacation_end ? String(raw.vacation_end) : null,
       };
     }
 

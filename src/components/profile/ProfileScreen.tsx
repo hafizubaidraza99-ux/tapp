@@ -143,21 +143,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
   };
 
   return (
-    <div className="flex-1 p-5 pb-8 overflow-y-auto space-y-5">
+    <div className="flex-1 p-5 pb-8 overflow-y-auto space-y-5 bg-white dark:bg-neutral-950">
       {/* Teacher Profile Card */}
-      <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm text-center">
-        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-2xl">
+      <div className="p-5 rounded-2xl bg-white dark:bg-neutral-950 border border-[#C9A227] shadow-sm text-center">
+        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-2xl">
           {session.teacherName.charAt(0).toUpperCase()}
         </div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+        <h2 className="text-xl font-bold text-black dark:text-white">
           {session.teacherName}
         </h2>
-        <p className="text-xs text-slate-500 font-mono mt-0.5">
+        <p className="text-xs text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">
           {session.whatsappNumber}
         </p>
 
         {session.isHeadTeacher && (
-          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 text-xs font-semibold">
+          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-black dark:text-white text-xs font-semibold">
             <GraduationCap className="w-3.5 h-3.5" />
             <span>Head Teacher</span>
           </div>
@@ -166,36 +166,36 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
 
       {/* School Information Section */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1">
+        <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 px-1">
           School Information
         </span>
-        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-sm">
+        <div className="rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-800 overflow-hidden shadow-sm">
           <div className="p-3.5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <SchoolIcon className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">School Name</span>
+              <SchoolIcon className="w-4 h-4 text-neutral-400" />
+              <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300">School Name</span>
             </div>
-            <span className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate text-right">
+            <span className="text-xs font-bold text-black dark:text-white max-w-[200px] truncate text-right">
               {schoolName}
             </span>
           </div>
 
           <div className="p-3.5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Globe className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Timezone</span>
+              <Globe className="w-4 h-4 text-neutral-400" />
+              <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300">Timezone</span>
             </div>
-            <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">
+            <span className="text-xs font-mono font-medium text-neutral-700 dark:text-neutral-300">
               {schoolTimezone}
             </span>
           </div>
 
           <div className="p-3.5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Working Days</span>
+              <Calendar className="w-4 h-4 text-neutral-400" />
+              <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300">Working Days</span>
             </div>
-            <span className="text-xs font-bold text-slate-900 dark:text-white">
+            <span className="text-xs font-bold text-black dark:text-white">
               {session.workingDays || 'Mon-Fri'}
             </span>
           </div>
@@ -205,27 +205,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
 
       {/* Notifications Setting Section */}
       <div className="space-y-2 pt-1">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1">
+        <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 px-1">
           Notifications
         </span>
-        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 p-4 space-y-3 shadow-sm">
+        <div className="rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 p-4 space-y-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white flex items-center justify-center shrink-0">
               <Bell className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-900 dark:text-white">
+              <p className="text-xs font-medium text-black dark:text-white">
                 {notifState === 'on' && 'Notifications are on'}
                 {notifState === 'off' && 'Notifications are off'}
                 {notifState === 'blocked' && 'Notifications are blocked for this app'}
               </p>
               {notifState === 'blocked' && (
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
                   Notifications are blocked for this app. Allow notifications for this site in your browser settings, then come back here and tap Enable notifications.
                 </p>
               )}
               {blockedRetryMessage && (
-                <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1.5 leading-relaxed">
+                <p className="text-[11px] text-neutral-700 dark:text-neutral-300 mt-1.5 leading-relaxed">
                   {blockedRetryMessage}
                 </p>
               )}
@@ -235,10 +235,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
             type="button"
             onClick={handleToggleNotifications}
             disabled={actionLoading !== null}
-            className={`w-full h-11 rounded-xl text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 min-h-[44px] ${
+            className={`w-full h-11 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 min-h-[44px] ${
               notifState === 'on'
-                ? 'bg-slate-700 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700'
-                : 'bg-blue-600 hover:bg-blue-700'
+                ? 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-black dark:text-white border border-neutral-300 dark:border-neutral-700'
+                : 'bg-black hover:bg-neutral-900 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-black border border-[#C9A227]'
             }`}
           >
             {actionLoading === 'enabling' && 'Turning on…'}
@@ -253,21 +253,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
         <button
           type="button"
           onClick={() => setShowPinModal(true)}
-          className="w-full min-h-[48px] px-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors shadow-sm ios-active"
+          className="w-full min-h-[48px] px-4 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-black dark:text-white font-semibold text-xs flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors shadow-sm ios-active"
         >
           <div className="flex items-center gap-2.5">
-            <KeyRound className="w-4 h-4 text-slate-500" />
+            <KeyRound className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
             <span>Change 4-Digit PIN</span>
           </div>
-          <span className="text-slate-400">&rarr;</span>
+          <span className="text-neutral-400">&rarr;</span>
         </button>
 
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full min-h-[48px] px-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 text-rose-700 dark:text-rose-400 font-semibold text-xs flex items-center justify-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors ios-active"
+          className="w-full min-h-[48px] px-4 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 font-semibold text-xs flex items-center justify-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors ios-active"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 text-rose-600" />
           <span>Sign Out / Switch Teacher</span>
         </button>
       </div>
@@ -275,27 +275,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
       {/* Change PIN Modal Sheet */}
       {showPinModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4 sm:hidden" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+          <div className="w-full sm:max-w-md bg-white dark:bg-neutral-950 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-[#C9A227]">
+            <div className="w-12 h-1 bg-neutral-300 dark:bg-neutral-700 rounded-full mx-auto mb-4 sm:hidden" />
+            <h3 className="text-base font-bold text-black dark:text-white">
               Change Your 4-Digit PIN
             </h3>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 mb-4">
               Enter a new 4-digit numeric passcode to secure your account.
             </p>
 
             {pinMessage && (
-              <div
-                className={`p-3 rounded-xl mb-3 text-xs flex items-center gap-2 ${
-                  pinMessage.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
-                    : 'bg-rose-50 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300'
-                }`}
-              >
+              <div className="p-3 rounded-xl mb-3 text-xs flex items-center gap-2 bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200">
                 {pinMessage.type === 'success' ? (
-                  <Check className="w-4 h-4" />
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                 ) : (
-                  <AlertCircle className="w-4 h-4" />
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 )}
                 <span>{pinMessage.text}</span>
               </div>
@@ -303,7 +297,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
 
             <form onSubmit={handleUpdatePin} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1">
                   Current 4-Digit PIN
                 </label>
                 <input
@@ -314,12 +308,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
                   value={oldPin}
                   onChange={(e) => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="w-full h-11 text-center text-lg font-mono tracking-widest bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-11 text-center text-lg font-mono tracking-widest bg-neutral-50 dark:bg-neutral-900 text-black dark:text-white rounded-xl border border-neutral-300 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1">
                   New 4-Digit PIN
                 </label>
                 <input
@@ -330,12 +324,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
                   value={newPin}
                   onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="w-full h-11 text-center text-lg font-mono tracking-widest bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-11 text-center text-lg font-mono tracking-widest bg-neutral-50 dark:bg-neutral-900 text-black dark:text-white rounded-xl border border-neutral-300 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1">
                   Confirm New PIN
                 </label>
                 <input
@@ -346,7 +340,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
                   value={confirmPin}
                   onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="w-full h-11 text-center text-lg font-mono tracking-widest bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-11 text-center text-lg font-mono tracking-widest bg-neutral-50 dark:bg-neutral-900 text-black dark:text-white rounded-xl border border-neutral-300 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                 />
               </div>
 
@@ -360,14 +354,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ session, onLogout 
                     setConfirmPin('');
                     setPinMessage(null);
                   }}
-                  className="flex-1 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold min-h-[44px]"
+                  className="flex-1 h-11 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs font-semibold min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={pinLoading || oldPin.length !== 4 || newPin.length !== 4}
-                  className="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 min-h-[44px]"
+                  className="flex-1 h-11 rounded-xl bg-black hover:bg-neutral-900 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-black border border-[#C9A227] text-xs font-semibold disabled:opacity-50 min-h-[44px]"
                 >
                   {pinLoading ? 'Saving...' : 'Update PIN'}
                 </button>

@@ -59,6 +59,12 @@ export interface ClassArrangementItem {
   coverStatus: string;
 }
 
+export interface PaperDutyItem {
+  id: string;
+  className: string;
+  periodNumber: number;
+}
+
 /**
  * Fetch default timetable for the current teacher using secure RPC get_my_default_timetable (phone + PIN)
  */
@@ -441,5 +447,47 @@ export async function getTeacherTodayTimetable(params: {
       dayName,
       error: err?.message || 'Failed to load timetable.',
     };
+  }
+}
+
+/**
+ * Fetch today's paper duty assignments for the current teacher using secure RPC get_my_paper_duty (phone + PIN)
+ */
+export async function getTeacherPaperDuty(): Promise<{
+  duties: PaperDutyItem[];
+  error?: string;
+}> {
+  const session = getStoredSession();
+  const phone = session?.whatsappNumber || '';
+  const pin = session?.pin || '';
+
+  if (!phone || !pin) {
+    return { duties: [] };
+  }
+
+  try {
+    const { data: rpcData, error: rpcError } = await gatewayRpc('get_my_paper_duty', {
+      p_phone: phone,
+      p_pin: pin,
+    });
+
+    if (rpcError) {
+      console.warn('Could not query get_my_paper_duty:', rpcError.message);
+      return { duties: [], error: 'Could not load paper duty.' };
+    }
+
+    const rows = Array.isArray(rpcData) ? rpcData : [];
+    const duties: PaperDutyItem[] = rows.map((row: any, idx: number) => ({
+      id: `${row.out_class_name || 'class'}-${row.out_period_number ?? idx}-${idx}`,
+      className: row.out_class_name || 'Class',
+      periodNumber: Number(row.out_period_number ?? 1),
+    }));
+
+    duties.sort((a, b) => a.periodNumber - b.periodNumber || a.className.localeCompare(b.className));
+
+    return { duties };
+  } catch (err: any) {
+    console.warn('Error in getTeacherPaperDuty:', err);
+    return { duties: [], error: 'Could not load paper duty.' };
   }
 }

@@ -84,6 +84,22 @@ export function formatFriendlyDate(dateStr: string, timezone: string = 'UTC'): s
   }
 }
 
+export function formatVacationDate(dateStr: string, timezone: string = 'UTC'): string {
+  try {
+    const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
+    if (!year || !month || !day) return dateStr;
+    const dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: timezone,
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(dateObj);
+  } catch {
+    return dateStr;
+  }
+}
+
 /**
  * Checks if the current time in the school's timezone has passed the cutoff time.
  * @param cutoffTime string in "HH:MM" format (e.g. "08:00")

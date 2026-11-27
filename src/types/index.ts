@@ -15,6 +15,8 @@ export interface SchoolSettings {
   send_time: string; // e.g. "07:00"
   reminder_minutes?: number; // e.g. 30
   cutoff_time: string; // e.g. "08:00"
+  vacation_start: string | null;
+  vacation_end: string | null;
   created_at?: string;
 }
 

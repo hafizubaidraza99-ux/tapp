@@ -130,6 +130,13 @@ export async function submitTodayAttendance(params: {
           error: `Attendance submission locked. Cutoff was passed.`,
         };
       }
+      if (reason === 'vacation') {
+        return {
+          success: false,
+          locked: true,
+          error: 'School is on vacation. Attendance is off.',
+        };
+      }
       if (reason === 'locked') {
         return {
           success: false,
